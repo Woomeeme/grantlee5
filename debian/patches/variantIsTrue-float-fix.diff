@@ -1,0 +1,39 @@
+Author: Pino Toscano <toscano.pino@tiscali.it>
+Description: Fix variantIsTrue for float variants
+ The test data for TestDefaultTags::testIfTag() has been expaded to
+ include if-truthiness data explicitly for double and float values,
+ so the they can be both tested no matter what qreal is.
+Last-Update: 2013-12-08
+Forwarded: https://www.gitorious.org/grantlee/grantlee/merge_requests/10
+
+--- a/templates/tests/testdefaulttags.cpp
++++ b/templates/tests/testdefaulttags.cpp
+@@ -1064,6 +1064,28 @@
+       << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}") << dict
+       << QStringLiteral("Yes") << NoError;
+ 
++  double d = 0.0;
++  dict.insert(QStringLiteral( "var" ), d);
++  QTest::newRow("if-truthiness11")
++    << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}")
++    << dict << QStringLiteral("No") << NoError;
++  d = 7.1;
++  dict.insert(QStringLiteral("var"), d);
++  QTest::newRow("if-truthiness12")
++    << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}")
++    << dict << QStringLiteral("Yes") << NoError;
++
++  float f = 0.0;
++  dict.insert(QStringLiteral("var"), f);
++  QTest::newRow("if-truthiness13")
++    << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}")
++    << dict << QStringLiteral("No") << NoError;
++  f = 7.1;
++  dict.insert(QStringLiteral("var"), f);
++  QTest::newRow("if-truthiness14")
++    << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}")
++    << dict << QStringLiteral("Yes") << NoError;
++
+   dict.clear();
+   QTest::newRow("if-tag-badarg01")
+       << QStringLiteral("{% if x|default_if_none:y %}yes{% endif %}") << dict

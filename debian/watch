@@ -1,0 +1,2 @@
+version=3
+opts=pgpsigurlmangle=s/$/.asc/ http://www.grantlee.org/downloads/grantlee-([\d\.]+)\.tar\.(?:gz|xz)

@@ -1,0 +1,215 @@
+grantlee5 (5.2.0-3) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Vagrant Cascadian ]
+  * Disable fixfilepath reproducibility feature, as it triggers build failures
+    when enabled. (Closes: #972302)
+
+ -- Aurélien COUDERC <coucouf@debian.org>  Mon, 11 Jan 2021 17:19:37 +0100
+
+grantlee5 (5.2.0-2) unstable; urgency=medium
+
+  * Upload to unstable.
+  * Add hppa as architecture where the tests can fail (the QML engine seems
+    broken there too).
+  * Bump Standards-Version to 4.5.0, no changes required.
+  * Add Rules-Requires-Root: no.
+  * Bump the debhelper compatibility to 13:
+    - switch the debhelper-compat build dependency to 13
+    - stop passing --fail-missing to dh_install, as it is the default now
+  * Small changes to copyright.
+
+ -- Pino Toscano <pino@debian.org>  Sun, 16 Aug 2020 17:53:22 +0200
+
+grantlee5 (5.2.0-1) experimental; urgency=medium
+
+  * New upstream release:
+    - fixes build with Qt 5.12 (Closes: #939362)
+  * Update watch file to the new download location, and allow xz as format.
+  * Switch Vcs-* fields to salsa.debian.org.
+  * Add the configuration for the CI on salsa.
+  * Update the build dependencies according to the upstream build system:
+    - bump cmake to 3.5
+    - remove libboost-dev, and qtscript5-dev, no more required
+    - add qtdeclarative5-dev
+  * Update the patches:
+    - datatime-fractional.diff: drop, fixed upstream
+  * Add Build-Depends-Package in symbols files.
+  * Bump the debhelper compatibility to 12:
+    - switch the debhelper build dependency to debhelper-compat 12
+    - remove debian/compat
+    - remove --parallel for dh, as now done by default
+    - switch from dh_install to dh_missing for --fail-missing
+    - drop the dh_makeshlibs override, as:
+      - -V is done by default
+      - plugins are no more misdetected as shared libraries, and thus no need
+        to manually exclude them
+  * Drop the migration from grantlee5-dbg, no more needed after two Debian
+    stable releases.
+  * Bump Standards-Version to 4.4.1, no changes required.
+  * Mark the library packages as Multi-Arch: same.
+  * Remove the cccc, and lcov build dependencies, as they are not used during
+    the build, or in the test suite run by default.
+  * Ship the examples in libgrantlee5-dev.
+  * Add a simple autopkgtest that builds the shipped examples.
+  * Add the GPG signing key of the upstream tarballs.
+
+ -- Pino Toscano <pino@debian.org>  Wed, 25 Dec 2019 12:52:51 +0100
+
+grantlee5 (5.1.0-2.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Add patch datatime-fractional.diff to fix FTBFS (Closes: #917711)
+
+ -- Ivo De Decker <ivodd@debian.org>  Mon, 15 Apr 2019 14:53:13 +0000
+
+grantlee5 (5.1.0-2) unstable; urgency=medium
+
+  [ Helmut Grohne ]
+  * Avoid calling xvfb-run on cross builds when DEB_BUILD_OPTIONS=nocheck is
+    set (Closes: 839394)
+
+ -- Maximiliano Curia <maxy@debian.org>  Mon, 24 Oct 2016 11:35:52 +0200
+
+grantlee5 (5.1.0-1) unstable; urgency=medium
+
+  * New upstream release (5.1.0) (Closes: #828881)
+  * Update copyright information
+  * Bump Standards-Version to 3.9.8
+  * Update build-deps and deps with the info from cmake
+  * Migrate dbg package to automatic dbgsym
+  * Update symbols files
+
+ -- Maximiliano Curia <maxy@debian.org>  Thu, 30 Jun 2016 10:47:48 +0200
+
+grantlee5 (5.0.0-3) unstable; urgency=medium
+
+  * Update symbols files from buildds logs (5.0.0-2).
+
+ -- Maximiliano Curia <maxy@debian.org>  Sun, 30 Aug 2015 08:58:21 +0200
+
+grantlee5 (5.0.0-2) unstable; urgency=medium
+
+  * Update symbols files.
+
+ -- Maximiliano Curia <maxy@debian.org>  Fri, 07 Aug 2015 12:46:38 +0200
+
+grantlee5 (5.0.0-1) unstable; urgency=medium
+
+  * New upstream release (5.0.0).
+  * Update copyright information.
+  * Add symbols files.
+  * Drop boost build dep, only needed for the tests in solaris.
+
+ -- Maximiliano Curia <maxy@debian.org>  Tue, 07 Jul 2015 23:00:17 +0200
+
+grantlee (0.4.0-3) unstable; urgency=medium
+
+  * Update symbols files. (Closes: #777889)
+
+ -- Maximiliano Curia <maxy@debian.org>  Thu, 06 Aug 2015 16:58:43 +0200
+
+grantlee (0.4.0-2) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Maximiliano Curia <maxy@debian.org>  Mon, 21 Jul 2014 09:53:27 +0200
+
+grantlee (0.4.0-1) experimental; urgency=low
+
+  * New upstream release:
+    - the provided jQuery (for an example) has been updated and it is provided
+      in uncompressed form (Closes: #710215)
+  * Bump the cmake build dependency to 2.8.9.
+  * Update the patches:
+    - variantIsTrue-float-fix.diff: remove applied parts
+    - testinternationalization-qreal.diff: remove, applied upstream
+  * Update .install files.
+  * Bump Standards-Version to 3.9.5, no changes required.
+  * Convert copyright to copyright-format v1.0, and update it.
+  * Bump default priority of all packages (except grantlee-dbg) to optional.
+
+ -- Pino Toscano <pino@debian.org>  Sun, 08 Dec 2013 11:19:44 +0100
+
+grantlee (0.3.0-5) unstable; urgency=low
+
+  * Slightly modify libgrantlee-dev.install so it is not affected by the actual
+    build type used.
+  * Add myself to Uploaders.
+  * Add grantlee-dbg with debug symbols.
+
+ -- Pino Toscano <pino@debian.org>  Sun, 26 May 2013 08:34:08 +0200
+
+grantlee (0.3.0-4) unstable; urgency=low
+
+  * Team upload.
+  * Update symbols files.
+  * Fix Grantlee on architectures where qreal is not double but float; patches
+    variantIsTrue-float-fix.diff and testinternationalization-qreal.diff.
+  * Turn dh_install's --list-missing into --fail-missing.
+  * Use wildcards in .install files.
+  * Ignore test suite failures on ia64 and sparc64. Apparently QtScript seems
+    buggy on these archs, leading to failures in few Grantlee tests; since also
+    older Grantlee versions fail the same way, ignore such failures for now.
+  * Add Build-Depends-Package in symbols files.
+
+ -- Pino Toscano <pino@debian.org>  Wed, 15 May 2013 14:14:28 +0200
+
+grantlee (0.3.0-3) unstable; urgency=low
+
+  * Team upload.
+  * Update symbols files.
+  * Update Vcs-* headers.
+  * Add the pkg-kde-tools build dependency and make use of the
+    pkgkde_symbolshelper dh addon for subst-using symbols.
+  * Enable the test suite:
+    - padd -DENABLE_TESTS=ON to cmake
+    - run dh_auto_test under xvfb-run, as some tests need X
+    - add the xvfb and xauth build dependencies
+  * Remove extra ${shlibs:Depends} from libgrantlee-dev.
+  * Make libgrantlee-dev depend on libqt4-dev.
+
+ -- Pino Toscano <pino@debian.org>  Tue, 14 May 2013 10:45:09 +0200
+
+grantlee (0.3.0-2) unstable; urgency=low
+
+  * Add myself to uploaders
+  * Add a watch file
+  * Bump debhelper build-dep and compat to 9
+  * Bump Standards-Version to 3.9.4
+  * Add Vcs-Git and Vcs-Browser fields
+  * Migrate cdbs to dh
+  * Update symbols files
+
+ -- Maximiliano Curia <maxy@debian.org>  Sun, 12 May 2013 13:24:24 +0200
+
+grantlee (0.3.0-1) experimental; urgency=low
+
+  * New upstream release
+  * Add myself to uploaders
+  * Update symbols files
+
+ -- Sune Vuorela <sune@debian.org>  Mon, 25 Mar 2013 15:46:10 +0100
+
+grantlee (0.2.0-1) unstable; urgency=low
+
+  * New upstream reelase
+  * Add grantlee_i18ntags.so plugin to libgrantlee-core0
+
+ -- Bjoern Ricks <bjoern.ricks@intevation.de>  Wed, 15 Feb 2012 13:26:47 +0100
+
+grantlee (0.1.7-1) unstable; urgency=low
+
+  * New upstream release
+  * Set compat level to 7
+  * Include cdbs util.mk in rules to check missing files
+  * Enable DEB_BUILD_PARALLEL
+
+ -- Bjoern Ricks <bjoern.ricks@intevation.de>  Fri, 10 Dec 2010 11:22:37 +0100
+
+grantlee (0.1.4-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Bjoern Ricks <bjoern.ricks@intevation.de>  Thu, 29 Jul 2010 10:30:08 +0200

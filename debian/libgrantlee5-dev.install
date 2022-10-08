@@ -1,0 +1,6 @@
+usr/include/grantlee/
+usr/include/grantlee_templates.h
+usr/include/grantlee_textdocument.h
+usr/lib/*/cmake/Grantlee5/
+usr/lib/*/libGrantlee_Templates.so
+usr/lib/*/libGrantlee_TextDocument.so
