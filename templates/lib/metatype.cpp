@@ -24,7 +24,9 @@
 #include "customtyperegistry_p.h"
 #include "metaenumvariable_p.h"
 
+#include <QtCore/QAssociativeIterable>
 #include <QtCore/QDebug>
+#include <QtCore/QSequentialIterable>
 
 using namespace Grantlee;
 
@@ -49,11 +51,11 @@ static QVariant doQobjectLookUp(const QObject *const object,
                                 const QString &property)
 {
   if (!object)
-    return QVariant();
+    return {};
   if (property == QStringLiteral("children")) {
-    const auto childList = object->children();
+    const auto &childList = object->children();
     if (childList.isEmpty())
-      return QVariant();
+      return {};
     QVariantList children;
 
     auto it = childList.constBegin();
@@ -123,7 +125,7 @@ QVariant Grantlee::MetaType::lookup(const QVariant &object,
     const auto listIndex = property.toInt(&ok);
 
     if (!ok || listIndex >= iter.size()) {
-      return QVariant();
+      return {};
     }
 
     return iter.at(listIndex);
@@ -132,9 +134,9 @@ QVariant Grantlee::MetaType::lookup(const QVariant &object,
 
     auto iter = object.value<QAssociativeIterable>();
 
-    auto mappedValue = iter.value(property);
-    if (mappedValue.isValid())
-      return mappedValue;
+    if (iter.find(property) != iter.end()) {
+      return iter.value(property);
+    }
 
     if (property == QStringLiteral("size")
         || property == QStringLiteral("count")) {
@@ -171,16 +173,43 @@ QVariant Grantlee::MetaType::lookup(const QVariant &object,
       return list;
     }
 
-    return QVariant();
+    return {};
   }
-  auto mo = QMetaType::metaObjectForType(object.userType());
+  auto mo = QMetaType(object.userType()).metaObject();
   if (mo) {
     QMetaType mt(object.userType());
     if (mt.flags().testFlag(QMetaType::IsGadget)) {
       const auto idx = mo->indexOfProperty(property.toUtf8().constData());
       if (idx >= 0) {
         const auto mp = mo->property(idx);
+
+        if (mp.isEnumType()) {
+          MetaEnumVariable mev(
+              mp.enumerator(),
+              mp.readOnGadget(object.constData()).value<int>());
+          return QVariant::fromValue(mev);
+        }
+
         return mp.readOnGadget(object.constData());
+      }
+
+      QMetaEnum me;
+      for (auto i = 0; i < mo->enumeratorCount(); ++i) {
+        me = mo->enumerator(i);
+
+        if (QLatin1String(me.name()) == property) {
+          MetaEnumVariable mev(me);
+          return QVariant::fromValue(mev);
+        }
+
+        const auto value = me.keyToValue(property.toLatin1().constData());
+
+        if (value < 0) {
+          continue;
+        }
+
+        MetaEnumVariable mev(me, value);
+        return QVariant::fromValue(mev);
       }
     }
   }

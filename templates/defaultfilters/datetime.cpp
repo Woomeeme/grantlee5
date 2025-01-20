@@ -88,13 +88,22 @@ QVariant DateFilter::doFilter(const QVariant &input, const QVariant &argument,
                               bool autoescape) const
 {
   Q_UNUSED(autoescape)
-  auto d = QDateTime::fromString(getSafeString(input),
+  QDateTime d;
+  if (input.userType() == QMetaType::QDateTime) {
+    d = input.toDateTime();
+  } else if (input.userType() == QMetaType::QDate) {
+    d.setDate(input.toDate());
+  } else if (input.userType() == QMetaType::QTime) {
+    d.setTime(input.toTime());
+  } else {
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
-                                 QStringLiteral("yyyy-MM-ddThh:mm:ss")
+    d = QDateTime::fromString(getSafeString(input),
+                              QStringLiteral("yyyy-MM-ddThh:mm:ss"));
 #else
-                                 QStringLiteral("yyyy-MM-ddThh:mm:ss.zzz")
+    d = QDateTime::fromString(getSafeString(input),
+                              QStringLiteral("yyyy-MM-ddThh:mm:ss.zzz"));
 #endif
-  );
+  }
 
   auto argString = getSafeString(argument);
 
@@ -108,10 +117,25 @@ QVariant TimeFilter::doFilter(const QVariant &input, const QVariant &argument,
                               bool autoescape) const
 {
   Q_UNUSED(autoescape)
+  QDateTime d;
+  if (input.userType() == QMetaType::QDateTime) {
+    d = input.toDateTime();
+  } else if (input.userType() == QMetaType::QDate) {
+    d.setDate(input.toDate());
+  } else if (input.userType() == QMetaType::QTime) {
+    d.setTime(input.toTime());
+  } else {
+#if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
+    d = QDateTime::fromString(getSafeString(input),
+                              QStringLiteral("yyyy-MM-ddThh:mm:ss"));
+#else
+    d = QDateTime::fromString(getSafeString(input),
+                              QStringLiteral("yyyy-MM-ddThh:mm:ss.zzz"));
+#endif
+  }
+
   auto argString = getSafeString(argument);
-  return QDateTime::fromString(getSafeString(input),
-                               QStringLiteral("yyyy-MM-ddThh:mm:ss"))
-      .toString(argString);
+  return d.toString(argString);
 }
 
 QVariant TimeSinceFilter::doFilter(const QVariant &input,
@@ -127,7 +151,7 @@ QVariant TimeSinceFilter::doFilter(const QVariant &input,
 
   auto early = input.value<QDateTime>();
   if (!early.isValid())
-    return QVariant();
+    return {};
   return timeSince(early, late);
 }
 
@@ -144,6 +168,6 @@ QVariant TimeUntilFilter::doFilter(const QVariant &input,
 
   auto late = input.value<QDateTime>();
   if (!late.isValid())
-    return QVariant();
+    return {};
   return timeSince(early, late);
 }

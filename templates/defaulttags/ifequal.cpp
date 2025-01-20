@@ -24,7 +24,7 @@
 #include "parser.h"
 #include "util.h"
 
-IfEqualNodeFactory::IfEqualNodeFactory() {}
+IfEqualNodeFactory::IfEqualNodeFactory() = default;
 
 Node *IfEqualNodeFactory::do_getNode(const QString &tagContent, Parser *p,
                                      bool negate) const
@@ -36,8 +36,6 @@ Node *IfEqualNodeFactory::do_getNode(const QString &tagContent, Parser *p,
         TagSyntaxError,
         QStringLiteral("%1 tag takes two arguments.").arg(expr.first()));
   }
-
-  QStringList vars;
 
   FilterExpression val1(expr.at(1), p);
   FilterExpression val2(expr.at(2), p);
@@ -63,7 +61,7 @@ Node *IfEqualNodeFactory::getNode(const QString &tagContent, Parser *p) const
   return do_getNode(tagContent, p, false);
 }
 
-IfNotEqualNodeFactory::IfNotEqualNodeFactory() {}
+IfNotEqualNodeFactory::IfNotEqualNodeFactory() = default;
 
 Node *IfNotEqualNodeFactory::getNode(const QString &tagContent, Parser *p) const
 {

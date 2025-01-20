@@ -1,0 +1,37 @@
+Author: Pino Toscano <pino@debian.org>
+Description: Registr MetaEnumVariable for comparison
+ .
+ This is needed to ensure that MetaEnumVariable can be properly handled
+ for comparisons, e.g. as done via QVariant::compare().
+Forwarded: https://github.com/steveire/grantlee/pull/91
+Last-Update: 2023-08-12
+
+diff --git a/templates/lib/engine.cpp b/templates/lib/engine.cpp
+index c6a6987..d31b54a 100644
+--- a/templates/lib/engine.cpp
++++ b/templates/lib/engine.cpp
+@@ -24,6 +24,7 @@
+ #include "exception.h"
+ #include "grantlee_config_p.h"
+ #include "grantlee_version.h"
++#include "metaenumvariable_p.h"
+ #ifdef QT_QML_LIB
+ #include "scriptabletags.h"
+ #endif
+@@ -32,6 +33,7 @@
+ 
+ #include <QtCore/QCoreApplication>
+ #include <QtCore/QDir>
++#include <QtCore/QMetaType>
+ #include <QtCore/QPluginLoader>
+ #include <QtCore/QTextStream>
+ 
+@@ -48,6 +50,8 @@ Engine::Engine(QObject *parent)
+ 
+   d_ptr->m_pluginDirs = QCoreApplication::libraryPaths();
+   d_ptr->m_pluginDirs << QString::fromLocal8Bit(GRANTLEE_PLUGIN_PATH);
++
++  QMetaType::registerComparators<MetaEnumVariable>();
+ }
+ 
+ Engine::~Engine()

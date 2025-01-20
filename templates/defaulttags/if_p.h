@@ -30,6 +30,24 @@
 #include "node.h"
 #include "util.h"
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)) && \
+    (QT_VERSION  < QT_VERSION_CHECK(6, 0, 0))
+namespace {
+class ComparableVariant : public QVariant
+{
+  public:
+    ComparableVariant(const QVariant &other)
+      : QVariant(other) { }
+
+    // Make QVariant::compare() public.
+    int compare(const QVariant &other) const
+    {
+        return QVariant::compare(other);
+    }
+};
+}
+#endif
+
 namespace Grantlee
 {
 class Parser;
@@ -61,7 +79,8 @@ private:
 static bool contains(const QVariant &needle, const QVariant &var)
 {
   if (Grantlee::isSafeString(var)) {
-    return getSafeString(var).get().contains(getSafeString(needle));
+    return Grantlee::getSafeString(var).get().contains(
+        Grantlee::getSafeString(needle));
   } else if (var.canConvert<QVariantList>()) {
     auto container = var.value<QVariantList>();
     if (Grantlee::isSafeString(needle)) {
@@ -285,7 +304,7 @@ QSharedPointer<IfToken> IfParser::createNode(const QString &content) const
       Grantlee::FilterExpression(content, mParser));
 }
 
-QVariant IfToken::evaluate(Context *c) const
+QVariant IfToken::evaluate(Grantlee::Context *c) const
 {
   try {
     switch (mOpCode) {
@@ -309,6 +328,8 @@ QVariant IfToken::evaluate(Context *c) const
     case NeqCode:
       return !Grantlee::equals(mArgs.first->evaluate(c),
                                mArgs.second->evaluate(c));
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+    // Pre Qt-5.15, use the operators (first deprecated in Qt 5.15).
     case GtCode:
       return mArgs.first->evaluate(c) > mArgs.second->evaluate(c);
     case GteCode:
@@ -317,6 +338,43 @@ QVariant IfToken::evaluate(Context *c) const
       return mArgs.first->evaluate(c) < mArgs.second->evaluate(c);
     case LteCode:
       return mArgs.first->evaluate(c) <= mArgs.second->evaluate(c);
+#elif QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    // From Qt 5.15, but before Qt 6, use a QVariant wrapper to access
+    // the protected QVariant::compare() function instead.
+    case GtCode:
+      return ComparableVariant(mArgs.first->evaluate(c))
+        .compare(mArgs.second->evaluate(c)) > 0;
+    case GteCode:
+      return ComparableVariant(mArgs.first->evaluate(c))
+        .compare(mArgs.second->evaluate(c)) >= 0;
+    case LtCode:
+      return ComparableVariant(mArgs.first->evaluate(c))
+        .compare(mArgs.second->evaluate(c)) < 0;
+    case LteCode:
+      return ComparableVariant(mArgs.first->evaluate(c))
+        .compare(mArgs.second->evaluate(c)) <= 0;
+#else // From Qt6, use QPartialOrdering (added in Qt 6.0).
+    case GtCode:
+    case GteCode:
+    case LtCode:
+    case LteCode: {
+      auto f = mArgs.first->evaluate(c);
+      auto s = mArgs.second->evaluate(c);
+
+      auto comp = QVariant::compare(f, s);
+      if (comp != QPartialOrdering::Unordered) {
+        if (mOpCode == GtCode && comp == QPartialOrdering::Greater)
+          return true;
+        if (mOpCode == GteCode && comp != QPartialOrdering::Less)
+          return true;
+        if (mOpCode == LtCode && comp == QPartialOrdering::Less)
+          return true;
+        if (mOpCode == LteCode && comp != QPartialOrdering::Greater)
+          return true;
+      }
+      return false;
+    }
+#endif
     default:
       Q_ASSERT(!"Invalid OpCode");
       return QVariant();

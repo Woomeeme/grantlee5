@@ -1,0 +1,79 @@
+#!/usr/bin/perl -w
+
+# SPDX-FileCopyrightText: 2023 Pino Toscano <pino@debian.org>
+# SPDX-License-Identifier: GPL-2.0
+
+=head1 NAME
+
+dh_grantlee - generate proper dependencies for grantlee plugins
+
+=head1 SYNOPSIS
+
+B<dh_qmlcdeps> [S<I<debhelper options>>]
+
+=head1 DESCRIPTION
+
+B<dh_grantlee> is a debhelper program that looks for F<*.so> files of
+grantlee plugins, installed in F</usr/lib/$DEB_HOST_MULTIARCH/grantlee>
+or F</usr/lib/$DEB_HOST_MULTIARCH/qt5/plugins/grantlee>, under a subdirectory
+named C<MAJOR.MINOR> (e.g. C<5.2>): in case any is found, a proper dependency
+C<grantlee5-templates-MAJOR-MINOR> dependency is added to the
+B<${grantlee:Depends}> substitution variable.
+
+This is needed because Grantlee loads plugins for templates only in
+subdirectories named after its C<MAJOR.MINOR> version.
+
+You can pass B<--with grantlee> to L<dh(1)> to make it automatically call
+B<dh_grantlee> after B<dh_install>, or add the C<dh-sequence-grantlee>
+build dependency.
+
+=cut
+
+use strict;
+use warnings;
+use File::Find;
+use Debian::Debhelper::Dh_Lib;
+
+init(options => {});
+
+foreach my $package (@{$dh{DOPACKAGES}}) {
+    my $tmpdir = tmpdir($package);
+    next unless -d "$tmpdir/usr/lib";
+    my $multiarch = dpkg_architecture_value("DEB_HOST_MULTIARCH");
+    my @candidate_paths = (
+        "$tmpdir/usr/lib/$multiarch/grantlee",
+        "$tmpdir/usr/lib/$multiarch/qt5/plugins/grantlee",
+    );
+    my @paths = grep { -d $_ } @candidate_paths;
+    next unless @paths;
+
+    my $grantlee_version;
+
+    find({
+        wanted => sub {
+            return unless $_ =~ /\.so$/;
+            return unless $File::Find::dir =~ m,/grantlee/(\d\.\d)/?$,;
+            my $file_version = $1;
+            if ($grantlee_version and $file_version ne $grantlee_version) {
+                error("Package $package contains plugins for different grantlee versions");
+            }
+            $grantlee_version = $file_version;
+        }
+    }, @paths);
+
+    $grantlee_version or next;
+    my $grantlee_version_str = "grantlee5-templates-$grantlee_version";
+    $grantlee_version_str =~ tr/./-/;
+
+    addsubstvar($package, "grantlee:Depends", $grantlee_version_str);
+}
+
+=head1 SEE ALSO
+
+L<debhelper(7)>
+
+=head1 AUTHOR
+
+Pino Toscano <pino@debian.org>
+
+=cut

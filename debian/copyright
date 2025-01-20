@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: grantlee
-Source: http://downloads.grantlee.org
+Source: https://github.com/steveire/grantlee
 
 Files: *
 Copyright: 1991-1999, Free Software Foundation, Inc

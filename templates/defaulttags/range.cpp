@@ -25,7 +25,7 @@
 #include "parser.h"
 #include "util.h"
 
-RangeNodeFactory::RangeNodeFactory() {}
+RangeNodeFactory::RangeNodeFactory() = default;
 
 Grantlee::Node *RangeNodeFactory::getNode(const QString &tagContent,
                                           Parser *p) const
@@ -51,7 +51,7 @@ Grantlee::Node *RangeNodeFactory::getNode(const QString &tagContent,
   if (numArgs > 2)
     numArgs -= 2;
 
-  RangeNode *n = 0;
+  RangeNode *n = nullptr;
 
   switch (numArgs) {
   case 1:
@@ -68,7 +68,7 @@ Grantlee::Node *RangeNodeFactory::getNode(const QString &tagContent,
                       FilterExpression(expr.at(2), p), p);
     break;
   default:
-    return 0;
+    return nullptr;
   }
 
   auto list = p->parse(n, QStringLiteral("endrange"));
@@ -116,7 +116,6 @@ void RangeNode::render(OutputStream *stream, Context *c) const
 
   Q_ASSERT(start < stop);
 
-  QString ret;
   for (auto i = start; i < stop; i += step) {
     if (insertContext) {
       c->push();

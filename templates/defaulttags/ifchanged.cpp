@@ -24,11 +24,17 @@
 
 #include <QtCore/QDateTime>
 
-IfChangedNodeFactory::IfChangedNodeFactory() {}
+IfChangedNodeFactory::IfChangedNodeFactory() = default;
 
 Node *IfChangedNodeFactory::getNode(const QString &tagContent, Parser *p) const
 {
-  auto expr = tagContent.split(QLatin1Char(' '), QString::SkipEmptyParts);
+  auto expr = tagContent.split(QLatin1Char(' '),
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                               QString::SkipEmptyParts
+#else
+                               Qt::SkipEmptyParts
+#endif
+  );
 
   expr.takeAt(0);
   auto n = new IfChangedNode(getFilterExpressionList(expr, p), p);
@@ -93,10 +99,17 @@ void IfChangedNode::render(OutputStream *stream, Context *c) const
     watchedVars.append(var);
   }
 
+  // In Qt6, QVariant::value<QVariantList>() converts a QString
+  // to a QList(QVariant(QChar, c)...).
+  // Avoid that conversion
+  QVariantList lastSeenVarList;
+  if (m_lastSeen.userType() != qMetaTypeId<QString>())
+    lastSeenVarList = m_lastSeen.value<QVariantList>();
+
   // At first glance it looks like m_last_seen will always be invalid,
   // But it will change because render is called multiple times by the parent
   // {% for %} loop in the template.
-  if ((watchedVars != m_lastSeen.value<QVariantList>())
+  if ((watchedVars != lastSeenVarList)
       || (!watchedString.isEmpty()
           && (watchedString != m_lastSeen.value<QString>()))) {
     auto firstLoop = !m_lastSeen.isValid();

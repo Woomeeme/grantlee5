@@ -30,7 +30,7 @@
 
 using namespace Grantlee;
 
-AbstractTemplateLoader::~AbstractTemplateLoader() {}
+AbstractTemplateLoader::~AbstractTemplateLoader() = default;
 
 namespace Grantlee
 {
@@ -62,22 +62,22 @@ FileSystemTemplateLoader::FileSystemTemplateLoader(
 
 FileSystemTemplateLoader::~FileSystemTemplateLoader()
 {
-  Q_FOREACH (const QString &dir, templateDirs())
+  for (const QString &dir : templateDirs())
     d_ptr->m_localizer->unloadCatalog(dir + QLatin1Char('/') + themeName());
   delete d_ptr;
 }
 
 InMemoryTemplateLoader::InMemoryTemplateLoader() : AbstractTemplateLoader() {}
 
-InMemoryTemplateLoader::~InMemoryTemplateLoader() {}
+InMemoryTemplateLoader::~InMemoryTemplateLoader() = default;
 
 void FileSystemTemplateLoader::setTheme(const QString &themeName)
 {
   Q_D(FileSystemTemplateLoader);
-  Q_FOREACH (const QString &dir, templateDirs())
+  for (const QString &dir : templateDirs())
     d->m_localizer->unloadCatalog(dir + QLatin1Char('/') + d->m_themeName);
   d->m_themeName = themeName;
-  Q_FOREACH (const QString &dir, templateDirs())
+  for (const QString &dir : templateDirs())
     d->m_localizer->loadCatalog(dir + QLatin1Char('/') + themeName, themeName);
 }
 
@@ -91,10 +91,10 @@ void FileSystemTemplateLoader::setTemplateDirs(const QStringList &dirs)
 {
   Q_D(FileSystemTemplateLoader);
 
-  Q_FOREACH (const QString &dir, templateDirs())
+  for (const QString &dir : templateDirs())
     d->m_localizer->unloadCatalog(dir + QLatin1Char('/') + d->m_themeName);
   d->m_templateDirs = dirs;
-  Q_FOREACH (const QString &dir, templateDirs())
+  for (const QString &dir : templateDirs())
     d->m_localizer->loadCatalog(dir + QLatin1Char('/') + d->m_themeName,
                                 d->m_themeName);
 }
@@ -145,16 +145,20 @@ Template FileSystemTemplateLoader::loadByName(const QString &fileName,
     if (file.exists()
         && !fi.canonicalFilePath().contains(
             QDir(d->m_templateDirs.at(i)).canonicalPath()))
-      return Template();
+      return {};
     ++i;
   }
 
   if (!file.exists() || !file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    return Template();
+    return {};
   }
 
   QTextStream fstream(&file);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   fstream.setCodec("UTF-8");
+#else
+  fstream.setEncoding(QStringConverter::Utf8);
+#endif
   const auto fileContent = fstream.readAll();
 
   return engine->newTemplate(fileContent, fileName);
@@ -187,7 +191,7 @@ FileSystemTemplateLoader::getMediaUri(const QString &fileName) const
     }
     ++i;
   }
-  return QPair<QString, QString>();
+  return {};
 }
 
 void InMemoryTemplateLoader::setTemplate(const QString &name,
@@ -204,8 +208,9 @@ bool InMemoryTemplateLoader::canLoadTemplate(const QString &name) const
 Template InMemoryTemplateLoader::loadByName(const QString &name,
                                             Engine const *engine) const
 {
-  if (m_namedTemplates.contains(name)) {
-    return engine->newTemplate(m_namedTemplates.value(name), name);
+  const auto it = m_namedTemplates.constFind(name);
+  if (it != m_namedTemplates.constEnd()) {
+    return engine->newTemplate(it.value(), name);
   }
   throw Grantlee::Exception(
       TagSyntaxError,
@@ -218,5 +223,5 @@ InMemoryTemplateLoader::getMediaUri(const QString &fileName) const
 {
   Q_UNUSED(fileName)
   // This loader doesn't make any media available yet.
-  return QPair<QString, QString>();
+  return {};
 }

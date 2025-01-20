@@ -51,25 +51,34 @@ QVariant CustomTypeRegistry::lookup(const QVariant &object,
                                     const QString &property) const
 {
   if (!object.isValid())
-    return QVariant();
+    return {};
   const auto id = object.userType();
   MetaType::LookupFunction lf;
 
   {
-    if (!types.contains(id)) {
-      qCWarning(GRANTLEE_CUSTOMTYPE)
-          << "Don't know how to handle metatype" << QMetaType::typeName(id);
+    auto it = types.constFind(id);
+    if (it == types.constEnd()) {
+      qCWarning(GRANTLEE_CUSTOMTYPE) << "Don't know how to handle metatype"
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+                                     << QMetaType::typeName(id);
+#else
+                                     << QMetaType(id).name();
+#endif
       // :TODO: Print out error message
-      return QVariant();
+      return {};
     }
 
-    const CustomTypeInfo &info = types[id];
+    const CustomTypeInfo &info = it.value();
     if (!info.lookupFunction) {
-      qCWarning(GRANTLEE_CUSTOMTYPE)
-          << "No lookup function for metatype" << QMetaType::typeName(id);
-      lf = 0;
+      qCWarning(GRANTLEE_CUSTOMTYPE) << "No lookup function for metatype"
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+                                     << QMetaType::typeName(id);
+#else
+                                     << QMetaType(id).name();
+#endif
+      lf = nullptr;
       // :TODO: Print out error message
-      return QVariant();
+      return {};
     }
 
     lf = info.lookupFunction;
@@ -80,5 +89,9 @@ QVariant CustomTypeRegistry::lookup(const QVariant &object,
 
 bool CustomTypeRegistry::lookupAlreadyRegistered(int id) const
 {
-  return types.contains(id) && types.value(id).lookupFunction != 0;
+  auto it = types.constFind(id);
+  if (it != types.constEnd()) {
+    return it.value().lookupFunction != nullptr;
+  }
+  return false;
 }

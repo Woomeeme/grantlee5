@@ -32,7 +32,7 @@
 #include <complex>
 #include <util.h>
 
-I18ncpNodeFactory::I18ncpNodeFactory() {}
+I18ncpNodeFactory::I18ncpNodeFactory() = default;
 
 Node *I18ncpNodeFactory::getNode(const QString &tagContent, Parser *p) const
 {
@@ -90,7 +90,7 @@ Node *I18ncpNodeFactory::getNode(const QString &tagContent, Parser *p) const
   return new I18ncpNode(contextText, sourceText, pluralText, feList);
 }
 
-I18ncpVarNodeFactory::I18ncpVarNodeFactory() {}
+I18ncpVarNodeFactory::I18ncpVarNodeFactory() = default;
 
 Grantlee::Node *I18ncpVarNodeFactory::getNode(const QString &tagContent,
                                               Parser *p) const
@@ -165,7 +165,7 @@ I18ncpNode::I18ncpNode(const QString &contextText, const QString &sourceText,
 void I18ncpNode::render(OutputStream *stream, Context *c) const
 {
   QVariantList args;
-  Q_FOREACH (const FilterExpression &fe, m_filterExpressionList)
+  for (const FilterExpression &fe : m_filterExpressionList)
     args.append(fe.resolve(c));
   auto resultString = c->localizer()->localizePluralContextString(
       m_sourceText, m_pluralText, m_contextText, args);
@@ -188,7 +188,7 @@ void I18ncpVarNode::render(OutputStream *stream, Context *c) const
 {
   Q_UNUSED(stream)
   QVariantList args;
-  Q_FOREACH (const FilterExpression &fe, m_filterExpressionList)
+  for (const FilterExpression &fe : m_filterExpressionList)
     args.append(fe.resolve(c));
   auto resultString = c->localizer()->localizePluralContextString(
       m_sourceText, m_pluralText, m_contextText, args);

@@ -46,7 +46,7 @@ SafeString::SafeString(const QString &str, Safety safety)
 {
 }
 
-SafeString::~SafeString() {}
+SafeString::~SafeString() = default;
 
 void SafeString::setNeedsEscape(bool needsEscape)
 {
@@ -86,18 +86,18 @@ SafeString &SafeString::operator=(const SafeString &str)
 
 SafeString SafeString::operator+(const QString &str)
 {
-  return SafeString(static_cast<QString>(m_nestedString) + str, IsNotSafe);
+  return {static_cast<QString>(m_nestedString) + str, IsNotSafe};
 }
 
 SafeString SafeString::operator+(const SafeString &str)
 {
   if (!str.isSafe())
-    return SafeString(static_cast<QString>(m_nestedString)
-                          + static_cast<QString>(str.get()),
-                      IsNotSafe);
-  return SafeString(static_cast<QString>(m_nestedString)
-                        + static_cast<QString>(str.get()),
-                    m_safety);
+    return {static_cast<QString>(m_nestedString)
+                + static_cast<QString>(str.get()),
+            IsNotSafe};
+  return {static_cast<QString>(m_nestedString)
+              + static_cast<QString>(str.get()),
+          m_safety};
 }
 
 SafeString &SafeString::operator+=(const QString &str)
@@ -145,12 +145,14 @@ SafeString &SafeString::NestedString::append(const QString &str)
   return *m_safeString;
 }
 
-SafeString &SafeString::NestedString::append(const QStringRef &reference)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+SafeString &SafeString::NestedString::append(const QStringRef &ref)
 {
-  QString::append(reference);
+  QString::append(ref);
   m_safeString->m_safety = IsNotSafe;
   return *m_safeString;
 }
+#endif
 
 SafeString &SafeString::NestedString::append(const QLatin1String &str)
 {
@@ -217,32 +219,32 @@ SafeString &SafeString::NestedString::insert(int position, QChar ch)
 
 SafeString SafeString::NestedString::left(int n) const
 {
-  return SafeString(QString::left(n), m_safeString->m_safety);
+  return {QString::left(n), m_safeString->m_safety};
 }
 
 SafeString SafeString::NestedString::leftJustified(int width, QChar fill,
                                                    bool truncate) const
 {
-  return SafeString(QString::leftJustified(width, fill, truncate),
-                    m_safeString->m_safety);
+  return {QString::leftJustified(width, fill, truncate),
+          m_safeString->m_safety};
 }
 
 SafeString SafeString::NestedString::mid(int position, int n) const
 {
-  return SafeString(QString::mid(position, n), m_safeString->m_safety);
+  return {QString::mid(position, n), m_safeString->m_safety};
 }
 
 SafeString
 SafeString::NestedString::normalized(QString::NormalizationForm mode) const
 {
-  return SafeString(QString::normalized(mode), m_safeString->m_safety);
+  return {QString::normalized(mode), m_safeString->m_safety};
 }
 
 SafeString
 SafeString::NestedString::normalized(QString::NormalizationForm mode,
                                      QChar::UnicodeVersion version) const
 {
-  return SafeString(QString::normalized(mode, version), m_safeString->m_safety);
+  return {QString::normalized(mode, version), m_safeString->m_safety};
 }
 
 SafeString &SafeString::NestedString::prepend(const Grantlee::SafeString &str)
@@ -326,7 +328,7 @@ SafeString &SafeString::NestedString::remove(const QRegularExpression &rx)
 
 SafeString SafeString::NestedString::repeated(int times) const
 {
-  return SafeString(QString::repeated(times), m_safeString->m_safety);
+  return {QString::repeated(times), m_safeString->m_safety};
 }
 
 SafeString &SafeString::NestedString::replace(int position, int n,
@@ -503,45 +505,41 @@ SafeString &SafeString::NestedString::replace(const QRegularExpression &rx,
 
 SafeString SafeString::NestedString::right(int n) const
 {
-  return SafeString(QString::right(n), m_safeString->m_safety);
+  return {QString::right(n), m_safeString->m_safety};
 }
 
 SafeString SafeString::NestedString::rightJustified(int width, QChar fill,
                                                     bool truncate) const
 {
-  return SafeString(QString::rightJustified(width, fill, truncate),
-                    m_safeString->m_safety);
+  return {QString::rightJustified(width, fill, truncate),
+          m_safeString->m_safety};
 }
 
 SafeString SafeString::NestedString::section(const QRegularExpression &reg,
                                              int start, int end,
                                              QString::SectionFlags flags) const
 {
-  return SafeString(QString::section(reg, start, end, flags),
-                    m_safeString->m_safety);
+  return {QString::section(reg, start, end, flags), m_safeString->m_safety};
 }
 
 SafeString SafeString::NestedString::section(QChar sep, int start, int end,
                                              QString::SectionFlags flags) const
 {
-  return SafeString(QString::section(sep, start, end, flags),
-                    m_safeString->m_safety);
+  return {QString::section(sep, start, end, flags), m_safeString->m_safety};
 }
 
 SafeString SafeString::NestedString::section(const Grantlee::SafeString &sep,
                                              int start, int end,
                                              QString::SectionFlags flags) const
 {
-  return SafeString(QString::section(sep, start, end, flags),
-                    m_safeString->m_safety);
+  return {QString::section(sep, start, end, flags), m_safeString->m_safety};
 }
 
 SafeString SafeString::NestedString::section(const QString &sep, int start,
                                              int end,
                                              QString::SectionFlags flags) const
 {
-  return SafeString(QString::section(sep, start, end, flags),
-                    m_safeString->m_safety);
+  return {QString::section(sep, start, end, flags), m_safeString->m_safety};
 }
 
 SafeString &SafeString::NestedString::setNum(int n, int base)
@@ -632,9 +630,10 @@ SafeString &SafeString::NestedString::setUtf16(const ushort *unicode, int size)
 
 SafeString SafeString::NestedString::simplified() const
 {
-  return SafeString(QString::simplified(), m_safeString->m_safety);
+  return {QString::simplified(), m_safeString->m_safety};
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 QStringList SafeString::NestedString::split(const Grantlee::SafeString &sep,
                                             QString::SplitBehavior behavior,
                                             Qt::CaseSensitivity cs) const
@@ -662,18 +661,48 @@ SafeString::NestedString::split(const QRegularExpression &rx,
 {
   return QString::split(rx, behavior);
 }
+#endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+QStringList SafeString::NestedString::split(const Grantlee::SafeString &sep,
+                                            Qt::SplitBehavior behavior,
+                                            Qt::CaseSensitivity cs) const
+{
+  return QString::split(sep.get(), behavior, cs);
+}
+
+QStringList SafeString::NestedString::split(const QString &sep,
+                                            Qt::SplitBehavior behavior,
+                                            Qt::CaseSensitivity cs) const
+{
+  return QString::split(sep, behavior, cs);
+}
+
+QStringList SafeString::NestedString::split(const QChar &sep,
+                                            Qt::SplitBehavior behavior,
+                                            Qt::CaseSensitivity cs) const
+{
+  return QString::split(sep, behavior, cs);
+}
+
+QStringList SafeString::NestedString::split(const QRegularExpression &rx,
+                                            Qt::SplitBehavior behavior) const
+{
+  return QString::split(rx, behavior);
+}
+#endif
 
 SafeString SafeString::NestedString::toLower() const
 {
-  return SafeString(QString::toLower(), IsNotSafe);
+  return {QString::toLower(), IsNotSafe};
 }
 
 SafeString SafeString::NestedString::toUpper() const
 {
-  return SafeString(QString::toUpper(), IsNotSafe);
+  return {QString::toUpper(), IsNotSafe};
 }
 
 SafeString SafeString::NestedString::trimmed() const
 {
-  return SafeString(QString::trimmed(), m_safeString->m_safety);
+  return {QString::trimmed(), m_safeString->m_safety};
 }

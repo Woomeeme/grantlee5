@@ -2,10 +2,7 @@ Source: grantlee5
 Section: libs
 Priority: optional
 Maintainer: Debian Krap Maintainers <debian-qt-kde@lists.debian.org>
-Uploaders: Bjoern Ricks <bjoern.ricks@intevation.de>,
-           Sune Vuorela <sune@debian.org>,
-           Maximiliano Curia <maxy@debian.org>,
-           Pino Toscano <pino@debian.org>
+Uploaders: Pino Toscano <pino@debian.org>
 Build-Depends: cmake (>= 3.5~),
                debhelper-compat (= 13),
                pkg-kde-tools,
@@ -13,11 +10,11 @@ Build-Depends: cmake (>= 3.5~),
                qtdeclarative5-dev (>= 5.4),
                qttools5-dev (>= 5.4),
                qttools5-dev-tools (>= 5.4),
-               xauth,
-               xvfb
-Standards-Version: 4.5.0
+               xauth <!nocheck>,
+               xvfb <!nocheck>,
+Standards-Version: 4.6.2
 Rules-Requires-Root: no
-Homepage: http://www.grantlee.org/
+Homepage: https://github.com/steveire/grantlee
 Vcs-Browser: https://salsa.debian.org/qt-kde-team/extras/grantlee
 Vcs-Git: https://salsa.debian.org/qt-kde-team/extras/grantlee.git
 
@@ -35,6 +32,7 @@ Package: libgrantlee-templates5
 Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: grantlee5-templates-5-3
 Description: Grantlee templating library for Qt - Templates
  Grantlee is a string template engine based on the Django template system
  and written in Qt.
@@ -48,9 +46,11 @@ Architecture: any
 Depends: libgrantlee-templates5 (= ${binary:Version}),
          libgrantlee-textdocument5 (= ${binary:Version}),
          qtbase5-dev (>= 5.4),
-         ${misc:Depends}
+         ${misc:Depends},
+         ${perl:Depends},
 Breaks: libgrantlee-dev (<= 5~)
 Replaces: libgrantlee-dev (<= 5~)
+Provides: dh-sequence-grantlee
 Description: Grantlee templating library development files
  Grantlee is a string template engine based on the Django template system
  and written in Qt.

@@ -1,2 +1,4 @@
-version=3
-opts=pgpsigurlmangle=s/$/.asc/ http://www.grantlee.org/downloads/grantlee-([\d\.]+)\.tar\.(?:gz|xz)
+version=4
+opts="filenamemangle=s%(?:.*?)?v?@ANY_VERSION@(@ARCHIVE_EXT@)%@PACKAGE@-$1$2%" \
+    https://github.com/steveire/grantlee/tags \
+    (?:.*?/)?v?@ANY_VERSION@@ARCHIVE_EXT@

@@ -1,3 +1,5 @@
+debian/dh/dh_grantlee /usr/bin/
+debian/dh/grantlee.pm /usr/share/perl5/Debian/Debhelper/Sequence/
 usr/include/grantlee/
 usr/include/grantlee_templates.h
 usr/include/grantlee_textdocument.h

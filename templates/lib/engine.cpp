@@ -37,7 +37,7 @@
 
 using namespace Grantlee;
 
-static const char __scriptableLibName[] = "grantlee_scriptabletags";
+static const char s_scriptableLibName[] = "grantlee_scriptabletags";
 
 Engine::Engine(QObject *parent)
     : QObject(parent), d_ptr(new EnginePrivate(this))
@@ -46,7 +46,7 @@ Engine::Engine(QObject *parent)
                             << QStringLiteral("grantlee_loadertags")
                             << QStringLiteral("grantlee_defaultfilters");
 
-  d_ptr->m_pluginDirs = QCoreApplication::instance()->libraryPaths();
+  d_ptr->m_pluginDirs = QCoreApplication::libraryPaths();
   d_ptr->m_pluginDirs << QString::fromLocal8Bit(GRANTLEE_PLUGIN_PATH);
 }
 
@@ -142,7 +142,7 @@ void Engine::loadDefaultLibraries()
 
 #ifdef QT_QML_LIB
   // Make sure we can load default scriptable libraries if we're supposed to.
-  if (d->m_defaultLibraries.contains(QLatin1String(__scriptableLibName))
+  if (d->m_defaultLibraries.contains(QLatin1String(s_scriptableLibName))
       && !d->m_scriptableTagLibrary) {
     d->m_scriptableTagLibrary = new ScriptableTagLibrary(this);
 
@@ -151,16 +151,16 @@ void Engine::loadDefaultLibraries()
 // so we new the library directly.
 // https://bugs.webkit.org/show_bug.cgi?id=38193
 #if 0
-    d->loadCppLibrary( __scriptableLibName, GRANTLEE_VERSION_MINOR );
-    PluginPointer<TagLibraryInterface> library = d->loadCppLibrary( __scriptableLibName, GRANTLEE_VERSION_MINOR );
+    d->loadCppLibrary( s_scriptableLibName, GRANTLEE_VERSION_MINOR );
+    PluginPointer<TagLibraryInterface> library = d->loadCppLibrary( s_scriptableLibName, GRANTLEE_VERSION_MINOR );
     if ( !library )
       throw Grantlee::Exception( TagSyntaxError, QStringLiteral("Could not load scriptable tags library") );
 #endif
   }
 #endif
 
-  Q_FOREACH (const QString &libName, d->m_defaultLibraries) {
-    if (libName == QLatin1String(__scriptableLibName))
+  for (const QString &libName : qAsConst(d->m_defaultLibraries)) {
+    if (libName == QLatin1String(s_scriptableLibName))
       continue;
 
     // already loaded by the engine.
@@ -195,8 +195,8 @@ TagLibraryInterface *Engine::loadLibrary(const QString &name)
   Q_D(Engine);
 
 #ifdef QT_QML_LIB
-  if (name == QLatin1String(__scriptableLibName))
-    return 0;
+  if (name == QLatin1String(s_scriptableLibName))
+    return nullptr;
 #endif
 
   // already loaded by the engine.
@@ -215,7 +215,7 @@ TagLibraryInterface *Engine::loadLibrary(const QString &name)
   throw Grantlee::Exception(
       TagSyntaxError,
       QStringLiteral("Plugin library '%1' not found.").arg(name));
-  return 0;
+  return nullptr;
 }
 
 TagLibraryInterface *EnginePrivate::loadLibrary(const QString &name,
@@ -236,7 +236,7 @@ EnginePrivate::EnginePrivate(Engine *engine)
     : q_ptr(engine)
 #ifdef QT_QML_LIB
       ,
-      m_scriptableTagLibrary(0)
+      m_scriptableTagLibrary(nullptr)
 #endif
       ,
       m_smartTrimEnabled(false)
@@ -268,7 +268,7 @@ QString EnginePrivate::getScriptLibraryName(const QString &name,
       return pair.first + pair.second;
     }
   }
-  return QString();
+  return {};
 }
 
 #ifdef QT_QML_LIB
@@ -276,27 +276,28 @@ ScriptableLibraryContainer *
 EnginePrivate::loadScriptableLibrary(const QString &name, uint minorVersion)
 {
   if (!m_scriptableTagLibrary)
-    return 0;
+    return nullptr;
 
 #if 0
-  if ( !m_libraries.contains( __scriptableLibName ) )
+  if ( !m_libraries.contains( s_scriptableLibName ) )
     return 0;
 #endif
 
   const auto libFileName = getScriptLibraryName(name, minorVersion);
 
   if (libFileName.isEmpty())
-    return 0;
+    return nullptr;
 
-  if (m_scriptableLibraries.contains(libFileName)) {
-    auto library = m_scriptableLibraries.value(libFileName);
+  const auto it = m_scriptableLibraries.constFind(libFileName);
+  if (it != m_scriptableLibraries.constEnd()) {
+    auto library = it.value();
     library->setNodeFactories(
         m_scriptableTagLibrary->nodeFactories(libFileName));
     library->setFilters(m_scriptableTagLibrary->filters(libFileName));
     return library;
   }
 #if 0
-  PluginPointer<TagLibraryInterface> scriptableTagLibrary = m_libraries.value( __scriptableLibName );
+  PluginPointer<TagLibraryInterface> scriptableTagLibrary = m_libraries.value( s_scriptableLibName );
 #endif
 
   const auto factories = m_scriptableTagLibrary->nodeFactories(libFileName);
@@ -352,7 +353,7 @@ EnginePrivate::loadCppLibrary(const QString &name, uint minorVersion)
       return plugin;
     }
   }
-  return 0;
+  return nullptr;
 }
 
 Template Engine::loadByName(const QString &name) const

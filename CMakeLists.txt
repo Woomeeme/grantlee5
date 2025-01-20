@@ -5,7 +5,7 @@ if (POLICY CMP0071)
   cmake_policy(SET CMP0071 NEW)
 endif()
 
-project(Grantlee5 VERSION 5.2.0)
+project(Grantlee5 VERSION 5.3.0)
 
 # Workaround for http://public.kitware.com/Bug/view.php?id=12301
 if (MINGW)
@@ -21,8 +21,10 @@ option( BUILD_TEXTDOCUMENT "Build the Grantlee textdocument library" TRUE )
 option( BUILD_MAIN_PLUGINS "Build the Grantlee Templates plugins" TRUE )
 option( BUILD_I18N_PLUGIN "Build the Grantlee Templates i18n plugin" TRUE )
 option( BUILD_TESTS "Build the Grantlee tests" TRUE )
+option( GRANTLEE_BUILD_WITH_QT6 "Build Grantlee with Qt 6" FALSE)
 
 if (BUILD_TESTS)
+  include (CTest)
   enable_testing()
 endif()
 
@@ -47,8 +49,8 @@ if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-  set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wno-long-long -std=iso9899:1990 -Wundef -Wcast-align -Werror-implicit-function-declaration -Wchar-subscripts -Wall -W -Wpointer-arith -Wwrite-strings -Wformat-security -Wmissing-format-attribute -fno-common")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wnon-virtual-dtor -Wno-long-long -Wundef -Wcast-align -Wchar-subscripts -Wall -W -Wpointer-arith -Wformat-security -fno-check-new -fno-common -pedantic-errors")
+  set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wshadow -Wno-long-long -std=iso9899:1990 -Wundef -Wcast-align -Werror-implicit-function-declaration -Wchar-subscripts -Wall -W -Wpointer-arith -Wwrite-strings -Wformat-security -Wmissing-format-attribute -fno-common")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow -Wnon-virtual-dtor -Wno-long-long -Wundef -Wcast-align -Wchar-subscripts -Wall -W -Wpointer-arith -Wformat-security -fno-check-new -fno-common -pedantic-errors")
 
   if (NOT APPLE)
     set ( CMAKE_SHARED_LINKER_FLAGS "-Wl,--fatal-warnings -Wl,--no-undefined ${CMAKE_SHARED_LINKER_FLAGS}")
@@ -64,6 +66,7 @@ add_definitions(
   -DQT_NO_CAST_FROM_BYTEARRAY
   -DQT_NO_KEYWORDS
   -DQT_USE_QSTRINGBUILDER
+  -DQT_DISABLE_DEPRECATED_BEFORE=0x050d00
 )
 
 # Always include the source and build directories in the include path
@@ -87,6 +90,14 @@ set( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 include("${Grantlee_MODULE_DIR}/GrantleeMacros.cmake")
 
+if (GRANTLEE_BUILD_WITH_QT6)
+    find_package(Qt6Core 6.0.0 REQUIRED)
+    find_package(Qt6Qml 6.0.0)
+else()
+    find_package(Qt5Core 5.2.0 REQUIRED)
+    find_package(Qt5Qml 5.2.0)
+endif()
+
 if (BUILD_TEMPLATES)
   add_subdirectory(templates)
 endif()
@@ -96,6 +107,12 @@ if (BUILD_TEXTDOCUMENT)
 endif()
 
 set(CMAKECONFIG_INSTALL_DIR "${LIB_INSTALL_DIR}/cmake/Grantlee${Grantlee5_VERSION_MAJOR}" )
+
+if (GRANTLEE_BUILD_WITH_QT6)
+  set(Grantlee_REQUIRED_QT_VERSION 6)
+else()
+  set(Grantlee_REQUIRED_QT_VERSION 5)
+endif()
 
 configure_file(
   "${Grantlee_MODULE_DIR}/Grantlee${Grantlee5_VERSION_MAJOR}Config.cmake.in"
@@ -213,8 +230,13 @@ if(LCOV_FOUND)
   # For an unknown reason lcov does not work with absolute paths such as ${CMAKE_BINARY_DIR}
   file(RELATIVE_PATH relBinaryDir / ${CMAKE_BINARY_DIR})
 
-  find_package(Qt5Core REQUIRED)
-  get_property(qmake_loc TARGET Qt5::qmake PROPERTY LOCATION)
+  if (GRANTLEE_BUILD_WITH_QT6)
+    find_package(Qt6Core REQUIRED)
+    get_property(qmake_loc TARGET Qt6::qmake PROPERTY LOCATION)
+  else()
+    find_package(Qt5Core REQUIRED)
+    get_property(qmake_loc TARGET Qt5::qmake PROPERTY LOCATION)
+  endif()
   execute_process(COMMAND "${qmake_loc}" -query QT_INSTALL_HEADERS
     RESULT_VARIABLE return_code
     OUTPUT_VARIABLE output

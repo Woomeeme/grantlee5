@@ -39,22 +39,22 @@ bool Grantlee::variantIsTrue(const QVariant &variant)
   if (!variant.isValid())
     return false;
   switch (variant.userType()) {
-  case QVariant::Bool: {
+  case QMetaType::Bool: {
     return variant.value<bool>();
   }
-  case QVariant::Int: {
+  case QMetaType::Int: {
     return variant.value<int>() > 0;
   }
-  case QVariant::UInt: {
+  case QMetaType::UInt: {
     return variant.value<uint>() > 0;
   }
-  case QVariant::LongLong: {
+  case QMetaType::LongLong: {
     return variant.value<qlonglong>() > 0;
   }
-  case QVariant::ULongLong: {
+  case QMetaType::ULongLong: {
     return variant.value<qulonglong>() > 0;
   }
-  case QVariant::Double: {
+  case QMetaType::Double: {
     return variant.value<double>() > 0;
   }
   case QMetaType::Float: {
@@ -73,10 +73,10 @@ bool Grantlee::variantIsTrue(const QVariant &variant)
     }
     return true;
   }
-  case QVariant::List: {
+  case QMetaType::QVariantList: {
     return !variant.value<QVariantList>().isEmpty();
   }
-  case QVariant::Hash: {
+  case QMetaType::QVariantHash: {
     return !variant.value<QVariantHash>().isEmpty();
   }
   }
@@ -106,25 +106,24 @@ Grantlee::SafeString Grantlee::getSafeString(const QVariant &input)
 {
   if (input.userType() == qMetaTypeId<Grantlee::SafeString>()) {
     return input.value<Grantlee::SafeString>();
-  } else {
-    return input.value<QString>();
   }
+  return input.value<QString>();
 }
 
 bool Grantlee::isSafeString(const QVariant &input)
 {
   const auto type = input.userType();
   return ((type == qMetaTypeId<Grantlee::SafeString>())
-          || type == QVariant::String);
+          || type == QMetaType::QString);
 }
 
 static QList<int> getPrimitives()
 {
   QList<int> primitives;
-  primitives << qMetaTypeId<Grantlee::SafeString>() << QVariant::String
-             << QVariant::Bool << QVariant::Int << QVariant::Double
-             << QMetaType::Float << QVariant::Date << QVariant::Time
-             << QVariant::DateTime;
+  primitives << qMetaTypeId<Grantlee::SafeString>() << QMetaType::QString
+             << QMetaType::Bool << QMetaType::Int << QMetaType::Double
+             << QMetaType::Float << QMetaType::QDate << QMetaType::QTime
+             << QMetaType::QDateTime;
   return primitives;
 }
 
@@ -146,11 +145,11 @@ bool Grantlee::equals(const QVariant &lhs, const QVariant &rhs)
     if (rhs.userType() == qMetaTypeId<Grantlee::SafeString>()) {
       equal = (lhs.value<Grantlee::SafeString>()
                == rhs.value<Grantlee::SafeString>());
-    } else if (rhs.userType() == QVariant::String) {
+    } else if (rhs.userType() == QMetaType::QString) {
       equal = (lhs.value<Grantlee::SafeString>() == rhs.value<QString>());
     }
   } else if (rhs.userType() == qMetaTypeId<Grantlee::SafeString>()
-             && lhs.userType() == QVariant::String) {
+             && lhs.userType() == QMetaType::QString) {
     equal = (rhs.value<Grantlee::SafeString>() == lhs.value<QString>());
   } else if (rhs.userType() == qMetaTypeId<MetaEnumVariable>()) {
     if (lhs.userType() == qMetaTypeId<MetaEnumVariable>()) {
@@ -163,9 +162,83 @@ bool Grantlee::equals(const QVariant &lhs, const QVariant &rhs)
       equal = (lhs.value<MetaEnumVariable>() == rhs.value<int>());
     }
   } else {
-    equal = ((lhs == rhs) && (lhs.userType() == rhs.userType()));
+    equal = (lhs == rhs);
   }
   return equal;
+}
+
+std::pair<qreal, QString> Grantlee::calcFileSize(qreal size, int unitSystem,
+                                                 qreal multiplier)
+{
+  std::pair<qreal, QString> ret;
+
+  int _unitSystem = unitSystem;
+
+  if ((_unitSystem != 2) && (_unitSystem != 10)) {
+    qWarning("%s", "Unrecognized file size unit system. Falling back to "
+                   "decimal unit system.");
+    _unitSystem = 10;
+  }
+
+  if (size == 0.0) {
+    ret.first = 0.0;
+    ret.second = QStringLiteral("bytes");
+    return ret;
+  }
+  if ((size == 1.0) || (size == -1.0)) {
+    ret.first = 1.0;
+    ret.second = QStringLiteral("byte");
+    return ret;
+  }
+
+  qreal _size = size * multiplier;
+
+  const bool positiveValue = (_size > 0);
+
+  if (!positiveValue) {
+    _size *= -1;
+  }
+
+  static const QStringList binaryUnits(
+      {QStringLiteral("bytes"), QStringLiteral("KiB"), QStringLiteral("MiB"),
+       QStringLiteral("GiB"), QStringLiteral("TiB"), QStringLiteral("PiB"),
+       QStringLiteral("EiB"), QStringLiteral("ZiB"), QStringLiteral("YiB")});
+
+  static const QStringList decimalUnits(
+      {QStringLiteral("bytes"), QStringLiteral("KB"), QStringLiteral("MB"),
+       QStringLiteral("GB"), QStringLiteral("TB"), QStringLiteral("PB"),
+       QStringLiteral("EB"), QStringLiteral("ZB"), QStringLiteral("YB")});
+
+  bool found = false;
+  int count = 0;
+  const qreal baseVal = (_unitSystem == 10) ? 1000.0F : 1024.0F;
+  qreal current = 1.0F;
+  int units = decimalUnits.size();
+  while (!found && (count < units)) {
+    current *= baseVal;
+    if (_size < current) {
+      found = true;
+      break;
+    }
+    count++;
+  }
+
+  if (count >= units) {
+    count = (units - 1);
+  }
+
+  qreal devider = current / baseVal;
+  _size = _size / devider;
+
+  if (!positiveValue) {
+    _size *= -1.0;
+  }
+
+  ret.first = _size;
+  ret.second
+      = (_unitSystem == 10) ? decimalUnits.at(count) : binaryUnits.at(count);
+
+  return ret;
 }
 
 Grantlee::SafeString Grantlee::toString(const QVariantList &list)

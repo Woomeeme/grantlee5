@@ -116,15 +116,15 @@ TemplateImpl *Node::containerTemplate() const
   return ti;
 }
 
-NodeList::NodeList() : QList<Grantlee::Node *>(), m_containsNonText(false) {}
+NodeList::NodeList() : m_containsNonText(false) {}
 
-NodeList::NodeList(const NodeList &list) : QList<Grantlee::Node *>(list)
-{
-  m_containsNonText = list.m_containsNonText;
-}
+NodeList::NodeList(const NodeList &list) = default;
 
 NodeList &NodeList::operator=(const NodeList &list)
 {
+  if (&list == this) {
+    return *this;
+  }
   static_cast<QList<Grantlee::Node *> &>(*this)
       = static_cast<QList<Grantlee::Node *>>(list);
   m_containsNonText = list.m_containsNonText;
@@ -132,19 +132,18 @@ NodeList &NodeList::operator=(const NodeList &list)
 }
 
 NodeList::NodeList(const QList<Grantlee::Node *> &list)
-    : QList<Grantlee::Node *>(list)
+    : QList<Grantlee::Node *>(list), m_containsNonText(false)
 {
-  Q_FOREACH (Grantlee::Node *node, list) {
+  for (Grantlee::Node *node : list) {
     auto textNode = qobject_cast<TextNode *>(node);
     if (!textNode) {
       m_containsNonText = true;
       return;
     }
   }
-  m_containsNonText = false;
 }
 
-NodeList::~NodeList() {}
+NodeList::~NodeList() = default;
 
 void NodeList::append(Grantlee::Node *node)
 {
@@ -160,7 +159,7 @@ void NodeList::append(Grantlee::Node *node)
 void NodeList::append(QList<Grantlee::Node *> nodeList)
 {
   if (!m_containsNonText) {
-    Q_FOREACH (Grantlee::Node *node, nodeList) {
+    for (Grantlee::Node *node : nodeList) {
       auto textNode = qobject_cast<TextNode *>(node);
       if (!textNode) {
         m_containsNonText = true;

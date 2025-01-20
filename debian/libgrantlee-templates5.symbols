@@ -1,6 +1,7 @@
-# SymbolsHelper-Confirmed: 5.1.0 amd64
+# SymbolsHelper-Confirmed: 5.3.1 amd64 i386
 libGrantlee_Templates.so.5 libgrantlee-templates5 #MINVER#
 * Build-Depends-Package: libgrantlee5-dev
+ (optional)_ZGVZN9QMetaType19registerComparatorsI16MetaEnumVariableEEbvE1f@Base 5.3.1
  _ZN8Grantlee10SafeString12NestedString10push_frontERKS0_@Base 5.0.0
  _ZN8Grantlee10SafeString12NestedString10setUnicodeEPK5QChari@Base 5.0.0
  _ZN8Grantlee10SafeString12NestedString4chopEi@Base 5.0.0
@@ -116,6 +117,7 @@ libGrantlee_Templates.so.5 libgrantlee-templates5 #MINVER#
  _ZN8Grantlee12VariableNode16staticMetaObjectE@Base 5.0.0
  _ZN8Grantlee12VariableNodeC1ERKNS_16FilterExpressionEP7QObject@Base 5.0.0
  _ZN8Grantlee12VariableNodeC2ERKNS_16FilterExpressionEP7QObject@Base 5.0.0
+ _ZN8Grantlee12calcFileSizeEdid@Base 5.3.0
  _ZN8Grantlee12isSafeStringERK8QVariant@Base 5.0.0
  _ZN8Grantlee13NullLocalizer10pushLocaleERK7QString@Base 5.0.0
  _ZN8Grantlee13NullLocalizer11loadCatalogERK7QStringS3_@Base 5.0.0
@@ -291,9 +293,13 @@ libGrantlee_Templates.so.5 libgrantlee-templates5 #MINVER#
  _ZNK8Grantlee10SafeString12NestedString3midEii@Base 5.0.0
  _ZNK8Grantlee10SafeString12NestedString4leftEi@Base 5.0.0
  _ZNK8Grantlee10SafeString12NestedString5rightEi@Base 5.0.0
+ _ZNK8Grantlee10SafeString12NestedString5splitERK18QRegularExpression6QFlagsIN2Qt18SplitBehaviorFlagsEE@Base 5.3.0
  _ZNK8Grantlee10SafeString12NestedString5splitERK18QRegularExpressionN7QString13SplitBehaviorE@Base 5.1.0
+ _ZNK8Grantlee10SafeString12NestedString5splitERK5QChar6QFlagsIN2Qt18SplitBehaviorFlagsEENS6_15CaseSensitivityE@Base 5.3.0
  _ZNK8Grantlee10SafeString12NestedString5splitERK5QCharN7QString13SplitBehaviorEN2Qt15CaseSensitivityE@Base 5.0.0
+ _ZNK8Grantlee10SafeString12NestedString5splitERK7QString6QFlagsIN2Qt18SplitBehaviorFlagsEENS6_15CaseSensitivityE@Base 5.3.0
  _ZNK8Grantlee10SafeString12NestedString5splitERK7QStringNS2_13SplitBehaviorEN2Qt15CaseSensitivityE@Base 5.0.0
+ _ZNK8Grantlee10SafeString12NestedString5splitERKS0_6QFlagsIN2Qt18SplitBehaviorFlagsEENS5_15CaseSensitivityE@Base 5.3.0
  _ZNK8Grantlee10SafeString12NestedString5splitERKS0_N7QString13SplitBehaviorEN2Qt15CaseSensitivityE@Base 5.0.0
  _ZNK8Grantlee10SafeString12NestedString7sectionE5QCharii6QFlagsIN7QString11SectionFlagEE@Base 5.0.0
  _ZNK8Grantlee10SafeString12NestedString7sectionERK18QRegularExpressionii6QFlagsIN7QString11SectionFlagEE@Base 5.1.0
@@ -453,5 +459,6 @@ libGrantlee_Templates.so.5 libgrantlee-templates5 #MINVER#
  _ZTVN8Grantlee6ParserE@Base 5.0.0
  _ZTVN8Grantlee8TextNodeE@Base 5.0.0
  _ZTVN8Grantlee9ExceptionE@Base 5.0.0
+ (optional=templinst)_ZZN9QMetaType19registerComparatorsI16MetaEnumVariableEEbvE1f@Base 5.3.1
  qt_plugin_instance@Base 5.0.0
  qt_plugin_query_metadata@Base 5.0.0

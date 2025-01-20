@@ -35,7 +35,7 @@
 #include "util.h"
 #include <metaenumvariable_p.h>
 
-typedef QHash<QString, QVariant> Dict;
+using Dict = QHash<QString, QVariant>;
 
 Q_DECLARE_METATYPE(Grantlee::Error)
 
@@ -50,14 +50,21 @@ class OtherClass : public QObject
   Q_PROPERTY(QString method READ method)
   Q_PROPERTY(Animals animals READ animals)
 public:
-  OtherClass(QObject *parent = {}) : QObject(parent) {}
-
   enum Animals { Lions, Tigers, Bears };
-
   Q_ENUMS(Animals)
-  Animals animals() const { return Tigers; }
+
+  OtherClass(QObject *parent = {}) : QObject(parent) {}
+  OtherClass(Animals animals, QObject *parent = {})
+      : QObject(parent), m_animals(animals)
+  {
+  }
+
+  Animals animals() const { return m_animals; }
 
   QString method() const { return QStringLiteral("OtherClass::method"); }
+
+private:
+  Animals m_animals = Tigers;
 };
 
 /**
@@ -91,10 +98,31 @@ private:
   QObject *m_other;
 };
 
+/**
+  For use with tests.
+ */
+class GadgetClass
+{
+  Q_GADGET
+  Q_PROPERTY(PersonName personName READ personName)
+public:
+  enum PersonName { Mike = 0, Natalie, Oliver };
+  Q_ENUM(PersonName)
+
+  GadgetClass() = default;
+  GadgetClass(PersonName pn) : m_personName(pn) {}
+
+  PersonName personName() const { return m_personName; }
+
+private:
+  PersonName m_personName = Oliver;
+};
+Q_DECLARE_METATYPE(GadgetClass)
+
 class NoEscapeOutputStream : public OutputStream
 {
 public:
-  NoEscapeOutputStream() : OutputStream() {}
+  NoEscapeOutputStream() {}
 
   NoEscapeOutputStream(QTextStream *stream) : OutputStream(stream) {}
 
@@ -109,7 +137,7 @@ public:
 class JSOutputStream : public OutputStream
 {
 public:
-  JSOutputStream() : OutputStream() {}
+  JSOutputStream() {}
 
   JSOutputStream(QTextStream *stream) : OutputStream(stream) {}
 
@@ -152,7 +180,7 @@ public:
     }
 
     auto retString = input;
-    for (auto escape : jsEscapes) {
+    for (const auto &escape : qAsConst(jsEscapes)) {
       retString = retString.replace(escape.first, escape.second);
     }
     return retString;
@@ -269,7 +297,7 @@ void TestBuiltinSyntax::testObjects()
   SafeString s3(s1);
   Q_UNUSED(s3);
 
-  QMetaType::construct(qMetaTypeId<MetaEnumVariable>(), 0, 0);
+  QMetaType{qMetaTypeId<MetaEnumVariable>()}.create(nullptr);
 }
 
 void TestBuiltinSyntax::testTruthiness_data()
@@ -589,9 +617,9 @@ void TestBuiltinSyntax::testBasicSyntax_data()
   QTest::newRow("basic-syntax25")
       << "{{ \"fred\" }}" << dict << QStringLiteral("fred") << NoError;
   QTest::newRow("basic-syntax26")
-      << "{{ \"\\\"fred\\\"\" }}" << dict << "\"fred\"" << NoError;
+      << R"({{ "\"fred\"" }})" << dict << "\"fred\"" << NoError;
   QTest::newRow("basic-syntax27")
-      << "{{ _(\"\\\"fred\\\"\") }}" << dict << "\"fred\"" << NoError;
+      << R"({{ _("\"fred\"") }})" << dict << "&quot;fred&quot;" << NoError;
 
   dict.clear();
   hash.clear();
@@ -843,6 +871,57 @@ void TestBuiltinSyntax::testEnums_data()
       << QStringLiteral("{{ var.animals.keyCount }}") << dict
       << QStringLiteral("3") << NoError;
 
+  auto otherClass2 = new OtherClass(OtherClass::Lions, this);
+  dict.insert(QStringLiteral("var2"), QVariant::fromValue(otherClass2));
+
+  auto otherClass3 = new OtherClass(this);
+  dict.insert(QStringLiteral("var3"), QVariant::fromValue(otherClass3));
+
+  QTest::newRow("enums-compare01") << QStringLiteral(
+      "{% if var.animals == var3.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("enums-compare02") << QStringLiteral(
+      "{% if var.animals == var2.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("false")
+                                   << NoError;
+
+  QTest::newRow("enums-compare03") << QStringLiteral(
+      "{% if var.animals >= var3.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("enums-compare04") << QStringLiteral(
+      "{% if var.animals >= var2.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("enums-compare05") << QStringLiteral(
+      "{% if var.animals > var3.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("false")
+                                   << NoError;
+
+  QTest::newRow("enums-compare06") << QStringLiteral(
+      "{% if var.animals > var2.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("enums-compare07") << QStringLiteral(
+      "{% if var.animals <= var3.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("enums-compare08") << QStringLiteral(
+      "{% if var.animals <= var2.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("false")
+                                   << NoError;
+
+  QTest::newRow("enums-compare09") << QStringLiteral(
+      "{% if var.animals < var3.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("false")
+                                   << NoError;
+
+  QTest::newRow("enums-compare10") << QStringLiteral(
+      "{% if var.animals < var2.animals %}true{% else %}false{% endif %}")
+                                   << dict << QStringLiteral("false")
+                                   << NoError;
+
   QTest::newRow("qt-enums01") << QStringLiteral("{{ Qt.AlignRight }}") << dict
                               << QStringLiteral("2") << NoError;
   QTest::newRow("qt-enums02") << QStringLiteral("{{ Qt.AlignRight.scope }}")
@@ -861,6 +940,176 @@ void TestBuiltinSyntax::testEnums_data()
                               << QString() << NoError;
   QTest::newRow("qt-enums08")
       << QStringLiteral("{{ Qt }}") << dict << QString() << NoError;
+
+  dict.clear();
+
+  GadgetClass gadgetClasss;
+  dict.insert(QStringLiteral("var"), QVariant::fromValue(gadgetClasss));
+
+  QTest::newRow("gadget-enums01") << QStringLiteral("{{ var.Mike }}") << dict
+                                  << QStringLiteral("0") << NoError;
+  QTest::newRow("gadget-enums02") << QStringLiteral("{{ var.Natalie }}") << dict
+                                  << QStringLiteral("1") << NoError;
+  QTest::newRow("gadget-enums03") << QStringLiteral("{{ var.Oliver }}") << dict
+                                  << QStringLiteral("2") << NoError;
+  QTest::newRow("gadget-enums04")
+      << QStringLiteral("{{ var.Patricia }}") << dict << QString() << NoError;
+  QTest::newRow("gadget-enums05")
+      << QStringLiteral("{{ var.Natalie.name }}") << dict
+      << QStringLiteral("PersonName") << NoError;
+  QTest::newRow("gadget-enums06")
+      << QStringLiteral("{{ var.Natalie.scope }}") << dict
+      << QStringLiteral("GadgetClass") << NoError;
+  QTest::newRow("gadget-enums07") << QStringLiteral("{{ var.Natalie.value }}")
+                                  << dict << QStringLiteral("1") << NoError;
+  QTest::newRow("gadget-enums08")
+      << QStringLiteral("{{ var.Natalie.key }}") << dict
+      << QStringLiteral("Natalie") << NoError;
+  QTest::newRow("gadget-enums09") << QStringLiteral("{{ var.personName }}")
+                                  << dict << QStringLiteral("2") << NoError;
+  QTest::newRow("gadget-enums10")
+      << QStringLiteral("{{ var.personName.name }}") << dict
+      << QStringLiteral("PersonName") << NoError;
+  QTest::newRow("gadget-enums11")
+      << QStringLiteral("{{ var.personName.scope }}") << dict
+      << QStringLiteral("GadgetClass") << NoError;
+  QTest::newRow("gadget-enums12")
+      << QStringLiteral("{{ var.personName.value }}") << dict
+      << QStringLiteral("2") << NoError;
+  QTest::newRow("gadget-enums13")
+      << QStringLiteral("{{ var.personName.key }}") << dict
+      << QStringLiteral("Oliver") << NoError;
+  QTest::newRow("gadget-enums14") << QStringLiteral("{{ var.PersonName.0 }}")
+                                  << dict << QStringLiteral("0") << NoError;
+  QTest::newRow("gadget-enums15") << QStringLiteral("{{ var.PersonName.2 }}")
+                                  << dict << QStringLiteral("2") << NoError;
+  QTest::newRow("gadget-enums16") << QStringLiteral("{{ var.PersonName.3 }}")
+                                  << dict << QString() << NoError;
+  QTest::newRow("gadget-enums17")
+      << QStringLiteral("{{ var.PersonName.0.name }}") << dict
+      << QStringLiteral("PersonName") << NoError;
+  QTest::newRow("gadget-enums18")
+      << QStringLiteral("{{ var.PersonName.0.scope }}") << dict
+      << QStringLiteral("GadgetClass") << NoError;
+  QTest::newRow("gadget-enums19")
+      << QStringLiteral("{{ var.PersonName.0.value }}") << dict
+      << QStringLiteral("0") << NoError;
+  QTest::newRow("gadget-enums20")
+      << QStringLiteral("{{ var.PersonName.0.key }}") << dict
+      << QStringLiteral("Mike") << NoError;
+  QTest::newRow("gadget-enums21")
+      << QStringLiteral("{{ var.PersonName.2.key }}") << dict
+      << QStringLiteral("Oliver") << NoError;
+  QTest::newRow("gadget-enums22")
+      << QStringLiteral("{{ var.PersonName.samba }}") << dict << QString()
+      << NoError;
+  QTest::newRow("gadget-enums23")
+      << QStringLiteral(
+             "{% with var.personName as result %}{{ result.key }},{{ "
+             "result }},{{ result.scope }}{% endwith %}")
+      << dict << QStringLiteral("Oliver,2,GadgetClass") << NoError;
+  QTest::newRow("gadget-enums24")
+      << QStringLiteral(
+             "{% with var.PersonName.2 as result %}{{ result.key }},{{ "
+             "result }},{{ result.scope }}{% endwith %}")
+      << dict << QStringLiteral("Oliver,2,GadgetClass") << NoError;
+  QTest::newRow("gadget-enums25")
+      << QStringLiteral("{% with var.Oliver as result %}{{ result.key }},{{ "
+                        "result }},{{ result.scope }}{% endwith %}")
+      << dict << QStringLiteral("Oliver,2,GadgetClass") << NoError;
+  QTest::newRow("gadget-enums26")
+      << QStringLiteral(
+             "{% with var.PersonName as result %}{{ result.0.key }},{{ "
+             "result.1.key }},{{ result.2.key }}{% endwith %}")
+      << dict << QStringLiteral("Mike,Natalie,Oliver") << NoError;
+
+  QTest::newRow("gadget-enums-loops01")
+      << QString::fromLatin1(
+             "{% for enum in var.PersonName %}{% ifequal enum var.Natalie %}"
+             "<b>{{ enum.key }}</b>{% else %}{{ enum.key }}{% endifequal %},"
+             "{% empty %}No content{% endfor %}")
+      << dict << QStringLiteral("Mike,<b>Natalie</b>,Oliver,") << NoError;
+
+  QTest::newRow("gadget-enums-loops02")
+      << QString::fromLatin1("{% for enum in var.Tigers %}"
+                             "{% ifequal enum result %}<b>{{ enum.key }}</b>"
+                             "{% else %}{{ enum.key }}{% endifequal %},"
+                             "{% empty %}No content"
+                             "{% endfor %}")
+      << dict << QStringLiteral("No content") << NoError;
+
+  QTest::newRow("gadget-enums-loops03")
+      << QString::fromLatin1("{% with var.personName as result %}"
+                             "{% for enum in var.PersonName %}"
+                             "{% ifequal enum result %}<b>{{ enum.key }}</b>"
+                             "{% else %}{{ enum.key }}{% endifequal %},"
+                             "{% empty %}No content"
+                             "{% endfor %}"
+                             "{% endwith %}")
+      << dict << QStringLiteral("Mike,Natalie,<b>Oliver</b>,") << NoError;
+
+  QTest::newRow("gadget-enums-keycount01")
+      << QStringLiteral("{{ var.PersonName.keyCount }}") << dict
+      << QStringLiteral("3") << NoError;
+  QTest::newRow("gadget-enums-keycount02")
+      << QStringLiteral("{{ var.personName.keyCount }}") << dict
+      << QStringLiteral("3") << NoError;
+
+  GadgetClass gadgetClass2(GadgetClass::Natalie);
+  dict.insert(QStringLiteral("var2"), QVariant::fromValue(gadgetClass2));
+
+  GadgetClass gadgetClass3;
+  dict.insert(QStringLiteral("var3"), QVariant::fromValue(gadgetClass3));
+
+  QTest::newRow("gadget-enums-compare01")
+      << QStringLiteral("{% if var.personName == var3.personName %}true{% else "
+                        "%}false{% endif %}")
+      << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("gadget-enums-compare02")
+      << QStringLiteral("{% if var.personName == var2.personName %}true{% else "
+                        "%}false{% endif %}")
+      << dict << QStringLiteral("false") << NoError;
+
+  QTest::newRow("gadget-enums-compare03")
+      << QStringLiteral("{% if var.personName >= var3.personName %}true{% else "
+                        "%}false{% endif %}")
+      << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("gadget-enums-compare04")
+      << QStringLiteral("{% if var.personName >= var2.personName %}true{% else "
+                        "%}false{% endif %}")
+      << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("gadget-enums-compare05") << QStringLiteral(
+      "{% if var.personName > var3.personName %}true{% else %}false{% endif %}")
+                                          << dict << QStringLiteral("false")
+                                          << NoError;
+
+  QTest::newRow("gadget-enums-compare06") << QStringLiteral(
+      "{% if var.personName > var2.personName %}true{% else %}false{% endif %}")
+                                          << dict << QStringLiteral("true")
+                                          << NoError;
+
+  QTest::newRow("gadget-enums-compare07")
+      << QStringLiteral("{% if var.personName <= var3.personName %}true{% else "
+                        "%}false{% endif %}")
+      << dict << QStringLiteral("true") << NoError;
+
+  QTest::newRow("gadget-enums-compare08")
+      << QStringLiteral("{% if var.personName <= var2.personName %}true{% else "
+                        "%}false{% endif %}")
+      << dict << QStringLiteral("false") << NoError;
+
+  QTest::newRow("gadget-enums-compare09") << QStringLiteral(
+      "{% if var.personName < var3.personName %}true{% else %}false{% endif %}")
+                                          << dict << QStringLiteral("false")
+                                          << NoError;
+
+  QTest::newRow("gadget-enums-compare10") << QStringLiteral(
+      "{% if var.personName < var2.personName %}true{% else %}false{% endif %}")
+                                          << dict << QStringLiteral("false")
+                                          << NoError;
 }
 
 void TestBuiltinSyntax::testListIndex_data()
@@ -977,7 +1226,7 @@ void TestBuiltinSyntax::testFilterSyntax_data()
   dict.clear();
   dict.insert(QStringLiteral("var"), QVariant());
   QTest::newRow("filter-syntax10")
-      << "{{ var|default_if_none:\" endquote\\\" hah\" }}" << dict
+      << R"({{ var|default_if_none:" endquote\" hah" }})" << dict
       << " endquote\" hah" << NoError;
   // Variable as argument
   dict.insert(QStringLiteral("var2"), QStringLiteral("happy"));
@@ -1009,10 +1258,10 @@ void TestBuiltinSyntax::testFilterSyntax_data()
   // Escaped backslash in argument
   dict.clear();
   dict.insert(QStringLiteral("var"), QVariant());
-  QTest::newRow("filter-syntax15") << "{{ var|default_if_none:\"foo\\bar\" }}"
+  QTest::newRow("filter-syntax15") << R"({{ var|default_if_none:"foo\bar" }})"
                                    << dict << "foo\\bar" << NoError;
   // Escaped backslash using known escape char
-  QTest::newRow("filter-syntax16") << "{{ var|default_if_none:\"foo\\now\" }}"
+  QTest::newRow("filter-syntax16") << R"({{ var|default_if_none:"foo\now" }})"
                                    << dict << "foo\\now" << NoError;
   // Empty strings can be passed as arguments to filters
   dict.clear();
@@ -1035,7 +1284,7 @@ void TestBuiltinSyntax::testFilterSyntax_data()
       << QStringLiteral("hello ...") << NoError;
   // filters should accept empty string constants
   dict.clear();
-  QTest::newRow("filter-syntax20") << "{{ \"\"|default_if_none:\"was none\" }}"
+  QTest::newRow("filter-syntax20") << R"({{ ""|default_if_none:"was none" }})"
                                    << dict << QString() << NoError;
 
   QTest::newRow("filter-syntax21")
@@ -1108,8 +1357,9 @@ void TestBuiltinSyntax::testEscaping_data()
 
   // html escaping is not to be confused with for example url escaping.
   dict.insert(QStringLiteral("var"), QStringLiteral("< > & \" \' # = % $"));
-  QTest::newRow("escape01") << QStringLiteral("{{ var }}") << dict
-                            << "&lt; &gt; &amp; \" &#39; # = % $" << NoError;
+  QTest::newRow("escape01")
+      << QStringLiteral("{{ var }}") << dict
+      << "&lt; &gt; &amp; &quot; &#39; # = % $" << NoError;
 
   dict.clear();
   dict.insert(QStringLiteral("var"), QStringLiteral("this & that"));
@@ -1348,7 +1598,7 @@ void TestBuiltinSyntax::testTypeAccessorsUnordered()
   // Didn't catch any errors, so make sure I didn't expect any.
   QCOMPARE(NoError, error);
 
-  Q_FOREACH (const QString &s, output) {
+  for (const QString &s : output) {
     QVERIFY(result.contains(s));
   }
 

@@ -27,7 +27,7 @@
 
 #include <QtCore/QUrl>
 
-MediaFinderNodeFactory::MediaFinderNodeFactory() {}
+MediaFinderNodeFactory::MediaFinderNodeFactory() = default;
 
 Grantlee::Node *MediaFinderNodeFactory::getNode(const QString &tagContent,
                                                 Parser *p) const
@@ -55,7 +55,7 @@ void MediaFinderNode::render(OutputStream *stream, Context *c) const
   auto t = containerTemplate();
   auto engine = t->engine();
 
-  Q_FOREACH (const FilterExpression &fe, m_mediaExpressionList) {
+  for (const FilterExpression &fe : m_mediaExpressionList) {
     if (fe.isTrue(c)) {
       auto fileUrl = engine->mediaUri(getSafeString(fe.resolve(c)));
       if (fileUrl.second.isEmpty())

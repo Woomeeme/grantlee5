@@ -1,4 +1,0 @@
-# each example is standalone
-libgrantlee5-dev: duplicate-files usr/share/doc/libgrantlee5-dev/examples/*
-# just an example, not a real usage of jQuery
-libgrantlee5-dev: embedded-javascript-library usr/share/doc/libgrantlee5-dev/examples/htmlapps/templates/shared/jquery-*.js *

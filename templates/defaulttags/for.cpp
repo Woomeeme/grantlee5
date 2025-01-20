@@ -24,7 +24,9 @@
 #include "metaenumvariable_p.h"
 #include "parser.h"
 
-ForNodeFactory::ForNodeFactory() {}
+#include <QtCore/QSequentialIterable>
+
+ForNodeFactory::ForNodeFactory() = default;
 
 Node *ForNodeFactory::getNode(const QString &tagContent, Parser *p) const
 {
@@ -53,11 +55,17 @@ Node *ForNodeFactory::getNode(const QString &tagContent, Parser *p) const
             .arg(tagContent));
   }
 
-  Q_FOREACH (const QString &arg, expr.mid(0, expr.size() - 2)) {
-    vars << arg.split(QLatin1Char(','), QString::SkipEmptyParts);
+  for (const QString &arg : expr.mid(0, expr.size() - 2)) {
+    vars << arg.split(QLatin1Char(','),
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                      QString::SkipEmptyParts
+#else
+                      Qt::SkipEmptyParts
+#endif
+    );
   }
 
-  Q_FOREACH (const QString &var, vars) {
+  for (const QString &var : qAsConst(vars)) {
     if (var.isEmpty())
       throw Grantlee::Exception(
           TagSyntaxError,
@@ -199,13 +207,14 @@ void ForNode::render(OutputStream *stream, Context *c) const
         // in the list. And each item in the list is not itself a list.
         // Probably have a list of objects that we're taking properties
         // from.
-        Q_FOREACH (const QString &loopVar, m_loopVars) {
+        for (const QString &loopVar : m_loopVars) {
           c->push();
           c->insert(QStringLiteral("var"), v);
-          auto v = FilterExpression(QStringLiteral("var.") + loopVar, 0)
-                       .resolve(c);
+          auto resolvedFE
+              = FilterExpression(QStringLiteral("var.") + loopVar, nullptr)
+                    .resolve(c);
           c->pop();
-          c->insert(loopVar, v);
+          c->insert(loopVar, resolvedFE);
         }
       }
     } else {

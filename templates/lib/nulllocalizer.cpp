@@ -24,9 +24,9 @@
 
 using namespace Grantlee;
 
-NullLocalizer::NullLocalizer() {}
+NullLocalizer::NullLocalizer() = default;
 
-NullLocalizer::~NullLocalizer() {}
+NullLocalizer::~NullLocalizer() = default;
 
 QString NullLocalizer::localizeDate(const QDate &date,
                                     QLocale::FormatType formatType) const
@@ -95,7 +95,7 @@ static QString substituteArguments(const QString &input,
                                    const QVariantList &arguments)
 {
   auto string = input;
-  Q_FOREACH (const QVariant &arg, arguments) {
+  for (const QVariant &arg : arguments) {
     if (arg.userType() == qMetaTypeId<int>())
       string = string.arg(arg.value<int>());
     else if (arg.userType() == qMetaTypeId<double>())
@@ -159,7 +159,7 @@ NullLocalizer::localizePluralString(const QString &_string,
                    : substituteArguments(string, arguments);
 }
 
-QString NullLocalizer::currentLocale() const { return QString(); }
+QString NullLocalizer::currentLocale() const { return {}; }
 
 void NullLocalizer::pushLocale(const QString &localeName)
 {

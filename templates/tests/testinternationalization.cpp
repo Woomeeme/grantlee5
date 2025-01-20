@@ -221,14 +221,14 @@ void TestInternationalization::testStrings_data()
   QTest::newRow("string-06")
       << "%n People"
       << "1 People"
-      << "1 Person angemeldet" << QString::fromUtf8("1 Personne connecté")
+      << "1 Person angemeldet" << QStringLiteral(u"1 Personne connecté")
       << QStringLiteral("%n people are logged in")
       << QStringLiteral("%n People") << QVariantList{1};
 
   QTest::newRow("string-07")
       << "%n People"
       << "2 People"
-      << "2 Personen angemeldet" << QString::fromUtf8("2 Personnes connecté")
+      << "2 Personen angemeldet" << QStringLiteral(u"2 Personnes connecté")
       << QStringLiteral("%n people are logged in")
       << QStringLiteral("%n People") << QVariantList{2};
 
@@ -236,23 +236,23 @@ void TestInternationalization::testStrings_data()
       << "%n file(s) copied to %1"
       << "1 files copied to destinationFolder"
       << "1 Datei in destinationFolder kopiert"
-      << QString::fromUtf8("1 fichier copié dans destinationFolder")
-      << QString() << QStringLiteral("%n files copied to %1")
+      << QStringLiteral(u"1 fichier copié dans destinationFolder") << QString()
+      << QStringLiteral("%n files copied to %1")
       << QVariantList{1, QStringLiteral("destinationFolder")};
 
   QTest::newRow("string-09")
       << "%n file(s) copied to %1"
       << "2 files copied to destinationFolder"
       << "2 Datein in destinationFolder kopiert"
-      << QString::fromUtf8("2 fichiers copiés dans destinationFolder")
-      << QString() << QStringLiteral("%n files copied to %1")
+      << QStringLiteral(u"2 fichiers copiés dans destinationFolder") << QString()
+      << QStringLiteral("%n files copied to %1")
       << QVariantList{2, QStringLiteral("destinationFolder")};
 
   QTest::newRow("string-10")
       << "%n to %1"
       << "1 copied to destinationFolder"
       << "1 Datei wird nach destinationFolder kopiert"
-      << QString::fromUtf8("1 fichier est copié sur destinationFolder")
+      << QStringLiteral(u"1 fichier est copié sur destinationFolder")
       << QStringLiteral("Files are being copied")
       << QStringLiteral("%n copied to %1")
       << QVariantList{1, QStringLiteral("destinationFolder")};
@@ -261,7 +261,7 @@ void TestInternationalization::testStrings_data()
       << "%n to %1"
       << "1 copied to destinationFolder"
       << "1 Datei war nach destinationFolder kopiert"
-      << QString::fromUtf8("1 fichier a été copié à destinationFolder")
+      << QStringLiteral(u"1 fichier a été copié à destinationFolder")
       << QStringLiteral("Files have already been copied")
       << QStringLiteral("%n copied to %1")
       << QVariantList{1, QStringLiteral("destinationFolder")};
@@ -270,7 +270,7 @@ void TestInternationalization::testStrings_data()
       << "%n to %1"
       << "2 copied to destinationFolder"
       << "2 Datein wird nach destinationFolder kopiert"
-      << QString::fromUtf8("2 fichiers sont copiés à destinationFolder")
+      << QStringLiteral(u"2 fichiers sont copiés à destinationFolder")
       << QStringLiteral("Files are being copied")
       << QStringLiteral("%n copied to %1")
       << QVariantList{2, QStringLiteral("destinationFolder")};
@@ -279,7 +279,7 @@ void TestInternationalization::testStrings_data()
       << "%n to %1"
       << "2 copied to destinationFolder"
       << "2 Datein war nach destinationFolder kopiert"
-      << QString::fromUtf8("2 fichiers ont été copiés sur destinationFolder")
+      << QStringLiteral(u"2 fichiers ont été copiés sur destinationFolder")
       << QStringLiteral("Files have already been copied")
       << QStringLiteral("%n copied to %1")
       << QVariantList{2, QStringLiteral("destinationFolder")};
@@ -288,7 +288,7 @@ void TestInternationalization::testStrings_data()
       << "from %1 to %2"
       << "from sourceFolder to destinationFolder"
       << "nach destinationFolder von sourceFolder"
-      << QString::fromUtf8("à partir de sourceFolder destinationFolder")
+      << QStringLiteral(u"à partir de sourceFolder destinationFolder")
       << QStringLiteral("Files are being copied from %1 to %2") << QString()
       << QVariantList{QStringLiteral("sourceFolder"),
                       QStringLiteral("destinationFolder")};
@@ -311,7 +311,7 @@ void TestInternationalization::testStrings_data()
 #endif
 }
 
-typedef QHash<QString, QVariant> Dict;
+using Dict = QHash<QString, QVariant>;
 
 void TestInternationalization::testLocalizedTemplate()
 {
@@ -609,6 +609,162 @@ void TestInternationalization::testLocalizedTemplate_data()
       << QStringLiteral("{{ 'this'|cut:_(\"i\") }}") << QStringLiteral("ths")
       << QStringLiteral("ths") << QStringLiteral("ths") << QStringLiteral("ths")
       << QStringLiteral("ths") << dict;
+
+  // Start testing l10n_filesizeformat
+  // If build against Qt 5.10 or newer, internally QLocale::formattedDataSize()
+  // will be used for values that fit into a qint64. QLocale also supports
+  // translating the unit name, that is the reason why test results differ for
+  // Qt version before and after 5.10
+
+  dict.clear();
+  dict.insert(QStringLiteral("fs_int_mib"), 1048576);
+
+  QTest::newRow("fragment-09")
+      << QStringLiteral("{% l10n_filesize fs_int_mib %}")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1.05 MB")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1,05 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,05 Mo")
+#else
+      << QStringLiteral("1,05 MB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-10")
+      << QStringLiteral(
+             "{% l10n_filesize_var fs_int_mib size_var %}{{ size_var }}")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1.05 MB")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1,05 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,05 Mo")
+#else
+      << QStringLiteral("1,05 MB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-11")
+      << QStringLiteral("{% l10n_filesize fs_int_mib 2 %}")
+      << QStringLiteral("1.00 MiB") << QStringLiteral("1.00 MiB")
+      << QStringLiteral("1.00 MiB") << QStringLiteral("1,00 MiB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,00 Mio")
+#else
+      << QStringLiteral("1,00 MiB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-12")
+      << QStringLiteral(
+             "{% l10n_filesize_var fs_int_mib 2 size_var %}{{ size_var }}")
+      << QStringLiteral("1.00 MiB") << QStringLiteral("1.00 MiB")
+      << QStringLiteral("1.00 MiB") << QStringLiteral("1,00 MiB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,00 Mio")
+#else
+      << QStringLiteral("1,00 MiB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-13")
+      << QStringLiteral("{% l10n_filesize fs_int_mib 10 3 %}")
+      << QStringLiteral("1.049 MB") << QStringLiteral("1.049 MB")
+      << QStringLiteral("1.049 MB") << QStringLiteral("1,049 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,049 Mo")
+#else
+      << QStringLiteral("1,049 MB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-14")
+      << QStringLiteral(
+             "{% l10n_filesize_var fs_int_mib 10 3 size_var %}{{ size_var }}")
+      << QStringLiteral("1.049 MB") << QStringLiteral("1.049 MB")
+      << QStringLiteral("1.049 MB") << QStringLiteral("1,049 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,049 Mo")
+#else
+      << QStringLiteral("1,049 MB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-15")
+      << QStringLiteral("{% l10n_filesize fs_int_mib 10 2 1024 %}")
+      << QStringLiteral("1.07 GB") << QStringLiteral("1.07 GB")
+      << QStringLiteral("1.07 GB") << QStringLiteral("1,07 GB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,07 Go")
+#else
+      << QStringLiteral("1,07 GB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-16") << QStringLiteral(
+      "{% l10n_filesize_var fs_int_mib 10 2 1024 size_var %}{{ size_var }}")
+                               << QStringLiteral("1.07 GB")
+                               << QStringLiteral("1.07 GB")
+                               << QStringLiteral("1.07 GB")
+                               << QStringLiteral("1,07 GB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+                               << QStringLiteral("1,07 Go")
+#else
+                               << QStringLiteral("1,07 GB")
+#endif
+                               << dict;
+
+  dict.clear();
+  dict.insert(QStringLiteral("fs_float_mib"), 1024.5);
+
+  QTest::newRow("fragment-17")
+      << QStringLiteral("{% l10n_filesize fs_float_mib 10 2 1024 %}")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1.05 MB")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1,05 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,05 Mo")
+#else
+      << QStringLiteral("1,05 MB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-18") << QStringLiteral(
+      "{% l10n_filesize_var fs_float_mib 10 2 1024 size_var %}{{ size_var }}")
+                               << QStringLiteral("1.05 MB")
+                               << QStringLiteral("1.05 MB")
+                               << QStringLiteral("1.05 MB")
+                               << QStringLiteral("1,05 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+                               << QStringLiteral("1,05 Mo")
+#else
+                               << QStringLiteral("1,05 MB")
+#endif
+                               << dict;
+
+  dict.clear();
+  dict.insert(QStringLiteral("fs_string_mib"), QStringLiteral("1024.5"));
+
+  QTest::newRow("fragment-19")
+      << QStringLiteral("{% l10n_filesize fs_string_mib 10 2 1024 %}")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1.05 MB")
+      << QStringLiteral("1.05 MB") << QStringLiteral("1,05 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+      << QStringLiteral("1,05 Mo")
+#else
+      << QStringLiteral("1,05 MB")
+#endif
+      << dict;
+
+  QTest::newRow("fragment-20") << QStringLiteral(
+      "{% l10n_filesize_var fs_string_mib 10 2 1024 size_var %}{{ size_var }}")
+                               << QStringLiteral("1.05 MB")
+                               << QStringLiteral("1.05 MB")
+                               << QStringLiteral("1.05 MB")
+                               << QStringLiteral("1,05 MB")
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+                               << QStringLiteral("1,05 Mo")
+#else
+                               << QStringLiteral("1,05 MB")
+#endif
+                               << dict;
 }
 
 void TestInternationalization::testSafeContent()
@@ -771,13 +927,13 @@ void TestInternationalization::testSafeContent_data()
                         "today' '%n people visited today' 1 %}")
       << QStringLiteral(
              "1 people visited today") // Not really testing English here.
-      << QString::fromUtf8("1 personne a visité aujourd&#39;hui") << dict;
+      << QStringLiteral(u"1 personne a visité aujourd&#39;hui") << dict;
 
   QTest::newRow("safe-24")
       << QStringLiteral("{% i18ncp 'The number of people who have visited "
                         "today' '%n people visited today' 2 %}")
       << QStringLiteral("2 people visited today")
-      << QString::fromUtf8("2 personnes a visité aujourd&#39;hui") << dict;
+      << QStringLiteral(u"2 personnes a visité aujourd&#39;hui") << dict;
 
   QTest::newRow("safe-25")
       << QStringLiteral(
@@ -785,14 +941,13 @@ void TestInternationalization::testSafeContent_data()
              "visited today' '%n people visited today' 1 %}{% endautoescape %}")
       << QStringLiteral(
              "1 people visited today") // Not really testing English here.
-      << QString::fromUtf8("1 personne a visité aujourd'hui") << dict;
+      << QStringLiteral(u"1 personne a visité aujourd'hui") << dict;
 
   QTest::newRow("safe-26") << QStringLiteral(
       "{% autoescape off %}{% i18ncp 'The number of people who have visited "
       "today' '%n people visited today' 2 %}{% endautoescape %}")
                            << QStringLiteral("2 people visited today")
-                           << QString::fromUtf8(
-                                  "2 personnes a visité aujourd'hui")
+                           << QStringLiteral(u"2 personnes a visité aujourd'hui")
                            << dict;
 
   QTest::newRow("safe-27")
@@ -801,14 +956,14 @@ void TestInternationalization::testSafeContent_data()
              "people visited today' 1 as num_people %}-{{ num_people }}-")
       << QStringLiteral(
              "-1 people visited today-") // Not really testing English here.
-      << QString::fromUtf8("-1 personne a visité aujourd&#39;hui-") << dict;
+      << QStringLiteral(u"-1 personne a visité aujourd&#39;hui-") << dict;
 
   QTest::newRow("safe-28") << QStringLiteral(
       "{% i18ncp_var 'The number of people who have visited today' '%n people "
       "visited today' 2 as num_people %}-{{ num_people }}-")
                            << QStringLiteral("-2 people visited today-")
-                           << QString::fromUtf8(
-                                  "-2 personnes a visité aujourd&#39;hui-")
+                           << QStringLiteral(
+                                  u"-2 personnes a visité aujourd&#39;hui-")
                            << dict;
 
   QTest::newRow("safe-29")
@@ -818,15 +973,15 @@ void TestInternationalization::testSafeContent_data()
              "num_people }}-{% endautoescape %}")
       << QStringLiteral(
              "-1 people visited today-") // Not really testing English here.
-      << QString::fromUtf8("-1 personne a visité aujourd'hui-") << dict;
+      << QStringLiteral(u"-1 personne a visité aujourd'hui-") << dict;
 
   QTest::newRow("safe-30") << QStringLiteral(
       "{% autoescape off %}{% i18ncp_var 'The number of people who have "
       "visited today' '%n people visited today' 2 as num_people %}-{{ "
       "num_people }}-{% endautoescape %}")
                            << QStringLiteral("-2 people visited today-")
-                           << QString::fromUtf8(
-                                  "-2 personnes a visité aujourd'hui-")
+                           << QStringLiteral(
+                                  u"-2 personnes a visité aujourd'hui-")
                            << dict;
 }
 

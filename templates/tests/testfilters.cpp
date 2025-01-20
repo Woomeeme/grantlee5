@@ -33,7 +33,7 @@
 #include "template.h"
 #include <util.h>
 
-typedef QHash<QString, QVariant> Dict;
+using Dict = QHash<QString, QVariant>;
 
 Q_DECLARE_METATYPE(Grantlee::Error)
 
@@ -367,7 +367,7 @@ void TestFilters::testDateBasedFilters_data()
   QTest::newRow("filter-timeuntil15") << QStringLiteral("{{|timeuntil}}")
                                       << dict << QStringLiteral("") << NoError;
 
-  QDateTime d(QDate(2008, 1, 1));
+  QDateTime d(QDate(2008, 1, 1), {});
 
   dict.clear();
   dict.insert(QStringLiteral("d"), d);
@@ -401,7 +401,7 @@ void TestFilters::testStringFilters_data()
   QTest::newRow("filter-addslash01")
       << QStringLiteral("{% autoescape off %}{{ a|addslashes }} {{ "
                         "b|addslashes }}{% endautoescape %}")
-      << dict << "<a>\\\' <a>\\\'" << NoError;
+      << dict << R"(<a>\' <a>\')" << NoError;
 
   dict.clear();
   dict.insert(QStringLiteral("a"), QStringLiteral("<a>\'"));
@@ -410,7 +410,7 @@ void TestFilters::testStringFilters_data()
 
   QTest::newRow("filter-addslash02")
       << QStringLiteral("{{ a|addslashes }} {{ b|addslashes }}") << dict
-      << "&lt;a&gt;\\&#39; <a>\\\'" << NoError;
+      << R"(&lt;a&gt;\&#39; <a>\')" << NoError;
 
   dict.clear();
   dict.insert(QStringLiteral("a"), QStringLiteral("fred>"));
@@ -471,6 +471,20 @@ void TestFilters::testStringFilters_data()
   QTest::newRow("filter-floatformat02")
       << QStringLiteral("{{ a|floatformat }} {{ b|floatformat }}") << dict
       << QStringLiteral("1.4 1.4") << NoError;
+
+  dict.clear();
+  dict.insert(QStringLiteral("a"), double(1234.54321));
+  dict.insert(QStringLiteral("b"), int(1234));
+
+  QTest::newRow("filter-floatformat03")
+      << QStringLiteral("{{ a|floatformat }} {{ b|floatformat }}") << dict
+      << QStringLiteral("1234.5 1234.0") << NoError;
+  QTest::newRow("filter-floatformat04")
+      << QStringLiteral("{{ a|floatformat:2 }} {{ b|floatformat:2 }}") << dict
+      << QStringLiteral("1234.54 1234.00") << NoError;
+  QTest::newRow("filter-floatformat04")
+      << QStringLiteral("{{ a|floatformat:0 }} {{ b|floatformat:0 }}") << dict
+      << QStringLiteral("1235 1234") << NoError;
 
   //  The contents of "linenumbers" is escaped according to the current
   //  autoescape setting.
@@ -590,7 +604,7 @@ void TestFilters::testStringFilters_data()
          "b|stringformat:\"%2\" }}.{% endautoescape %}"
       << dict << QStringLiteral(".a<b. .a<b.") << NoError;
   QTest::newRow("filter-stringformat02")
-      << ".{{ a|stringformat:\"%1\" }}. .{{ b|stringformat:\"%2\" }}." << dict
+      << R"(.{{ a|stringformat:"%1" }}. .{{ b|stringformat:"%2" }}.)" << dict
       << QStringLiteral(".a&lt;b. .a<b.") << NoError;
   QTest::newRow("filter-stringformat03")
       << ".{{ a|stringformat:\"foo %1 bar\" }}. .{{ b|stringformat:\"baz %2 "
@@ -627,7 +641,7 @@ void TestFilters::testStringFilters_data()
       << dict << QStringLiteral("alpha & ... alpha &amp; ...") << NoError;
 
   QTest::newRow("filter-truncatewords02")
-      << "{{ a|truncatewords:\"2\" }} {{ b|truncatewords:\"2\"}}" << dict
+      << R"({{ a|truncatewords:"2" }} {{ b|truncatewords:"2"}})" << dict
       << QStringLiteral("alpha &amp; ... alpha &amp; ...") << NoError;
 
   //  The "upper" filter messes up entities (which are case-sensitive),
@@ -789,7 +803,7 @@ void TestFilters::testStringFilters_data()
       << dict << QStringLiteral(".a&b  . .a&b  .") << NoError;
 
   QTest::newRow("filter-ljust02")
-      << ".{{ a|ljust:\"5\" }}. .{{ b|ljust:\"5\" }}." << dict
+      << R"(.{{ a|ljust:"5" }}. .{{ b|ljust:"5" }}.)" << dict
       << QStringLiteral(".a&amp;b  . .a&b  .") << NoError;
 
   QTest::newRow("filter-rjust01")
@@ -798,7 +812,7 @@ void TestFilters::testStringFilters_data()
       << dict << QStringLiteral(".  a&b. .  a&b.") << NoError;
 
   QTest::newRow("filter-rjust02")
-      << ".{{ a|rjust:\"5\" }}. .{{ b|rjust:\"5\" }}." << dict
+      << R"(.{{ a|rjust:"5" }}. .{{ b|rjust:"5" }}.)" << dict
       << QStringLiteral(".  a&amp;b. .  a&b.") << NoError;
 
   QTest::newRow("filter-center01")
@@ -808,7 +822,7 @@ void TestFilters::testStringFilters_data()
       << dict << QStringLiteral(". a&b . . a&b .") << NoError;
 
   QTest::newRow("filter-center02")
-      << ".{{ a|center:\"5\" }}. .{{ b|center:\"5\" }}." << dict
+      << R"(.{{ a|center:"5" }}. .{{ b|center:"5" }}.)" << dict
       << QStringLiteral(". a&amp;b . . a&b .") << NoError;
 
   dict.clear();
@@ -820,13 +834,13 @@ void TestFilters::testStringFilters_data()
       << "{% autoescape off %}{{ a|cut:\"x\" }} {{ "
          "b|cut:\"x\" }}{% endautoescape %}"
       << dict << QStringLiteral("&y &amp;y") << NoError;
-  QTest::newRow("filter-cut02") << "{{ a|cut:\"x\" }} {{ b|cut:\"x\" }}" << dict
+  QTest::newRow("filter-cut02") << R"({{ a|cut:"x" }} {{ b|cut:"x" }})" << dict
                                 << QStringLiteral("&amp;y &amp;y") << NoError;
   QTest::newRow("filter-cut03")
       << "{% autoescape off %}{{ a|cut:\"&\" }} {{ "
          "b|cut:\"&\" }}{% endautoescape %}"
       << dict << QStringLiteral("xy xamp;y") << NoError;
-  QTest::newRow("filter-cut04") << "{{ a|cut:\"&\" }} {{ b|cut:\"&\" }}" << dict
+  QTest::newRow("filter-cut04") << R"({{ a|cut:"&" }} {{ b|cut:"&" }})" << dict
                                 << QStringLiteral("xy xamp;y") << NoError;
 
   //  Passing ";" to cut can break existing HTML entities, so those strings
@@ -837,7 +851,7 @@ void TestFilters::testStringFilters_data()
          "b|cut:\";\" }}{% endautoescape %}"
       << dict << QStringLiteral("x&y x&ampy") << NoError;
   QTest::newRow("filter-cut06")
-      << "{{ a|cut:\";\" }} {{ b|cut:\";\" }}" << dict
+      << R"({{ a|cut:";" }} {{ b|cut:";" }})" << dict
       << QStringLiteral("x&amp;y x&amp;ampy") << NoError;
 
   //  The "escape" filter works the same whether autoescape is on or off,
@@ -944,7 +958,7 @@ void TestFilters::testStringFilters_data()
               QVariantList{QStringLiteral("&"), QStringLiteral("<")});
 
   QTest::newRow("filter-safeseq01")
-      << "{{ a|join:\", \" }} -- {{ a|safeseq|join:\", \" }}" << dict
+      << R"({{ a|join:", " }} -- {{ a|safeseq|join:", " }})" << dict
       << QStringLiteral("&amp;, &lt; -- &, <") << NoError;
   QTest::newRow("filter-safeseq02")
       << "{% autoescape off %}{{ a|join:\", \" "
@@ -958,7 +972,7 @@ void TestFilters::testStringFilters_data()
                                        "<a>x</a> <p><b>y</b></p>"))));
 
   QTest::newRow("filter-removetags01")
-      << "{{ a|removetags:\"a b\" }} {{ b|removetags:\"a b\" }}" << dict
+      << R"({{ a|removetags:"a b" }} {{ b|removetags:"a b" }})" << dict
       << QStringLiteral("x &lt;p&gt;y&lt;/p&gt; x <p>y</p>") << NoError;
   QTest::newRow("filter-removetags02")
       << "{% autoescape off %}{{ a|removetags:\"a b\" }} {{ b|removetags:\"a "
@@ -971,6 +985,96 @@ void TestFilters::testStringFilters_data()
       << QStringLiteral("{% autoescape off %}{{ a|striptags }} {{ b|striptags "
                         "}}{% endautoescape %}")
       << dict << QStringLiteral("x y x y") << NoError;
+
+  dict.clear();
+  dict.insert(QStringLiteral("fs_int_mib"), 1048576);
+
+  QTest::newRow("filter-filesizeformat01")
+      << QStringLiteral("{{ fs_int_mib|filesizeformat }}") << dict
+      << QStringLiteral("1.05 MB") << NoError;
+
+  QTest::newRow("filter-filesizeformat02")
+      << QStringLiteral("{{ fs_int_mib|filesizeformat:\"2\" }}") << dict
+      << QStringLiteral("1.00 MiB") << NoError;
+
+  QTest::newRow("filter-filesizeformat03")
+      << QStringLiteral("{{ fs_int_mib|filesizeformat:\"10,3\" }}") << dict
+      << QStringLiteral("1.049 MB") << NoError;
+
+  QTest::newRow("filter-filesizeformat04")
+      << QStringLiteral("{{ fs_int_mib|filesizeformat:\"10,2,1024\" }}") << dict
+      << QStringLiteral("1.07 GB") << NoError;
+
+  dict.clear();
+  dict.insert(QStringLiteral("fs_float_mib"), 1024.5);
+
+  QTest::newRow("filter-filesizeformat05")
+      << QStringLiteral("{{ fs_float_mib|filesizeformat:\"10,2,1024\" }}")
+      << dict << QStringLiteral("1.05 MB") << NoError;
+
+  dict.clear();
+  dict.insert(QStringLiteral("fs_string_mib"), QStringLiteral("1024.5"));
+
+  QTest::newRow("filter-filesizeformat06")
+      << QStringLiteral("{{ fs_string_mib|filesizeformat:\"10,2,1024\" }}")
+      << dict << QStringLiteral("1.05 MB") << NoError;
+
+  dict.clear();
+  dict.insert(QStringLiteral("fs_bytes"), 999);
+  dict.insert(QStringLiteral("fs_kb"), 1000);
+  dict.insert(QStringLiteral("fs_10kb"), 10 * 1000);
+  dict.insert(QStringLiteral("fs_1000kb"), 1000 * 1000 - 1);
+  dict.insert(QStringLiteral("fs_mb"), 1000 * 1000);
+  dict.insert(QStringLiteral("fs_50mb"), 1000 * 1000 * 50);
+  dict.insert(QStringLiteral("fs_1000mb"), 1000 * 1000 * 1000 - 1);
+  dict.insert(QStringLiteral("fs_gb"), 1000 * 1000 * 1000);
+  dict.insert(QStringLiteral("fs_tb"),
+              static_cast<double>(1000.0 * 1000.0 * 1000.0 * 1000.0));
+  dict.insert(QStringLiteral("fs_pb"),
+              static_cast<double>(1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0));
+  dict.insert(
+      QStringLiteral("fs_eb"),
+      static_cast<double>(1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0 * 2000.0));
+  dict.insert(QStringLiteral("fs_zb"),
+              static_cast<double>(1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0
+                                  * 1000.0 * 1000.0));
+  dict.insert(QStringLiteral("fs_yb"),
+              static_cast<double>(1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0
+                                  * 1000.0 * 1000.0 * 1000.0));
+  dict.insert(QStringLiteral("fs_2000yb"),
+              static_cast<double>(1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0
+                                  * 1000.0 * 1000.0 * 1000.0 * 2000.0));
+  dict.insert(QStringLiteral("fs_0b1"), 0.1);
+  dict.insert(QStringLiteral("fs_0b2"), QString(QChar(0x03B1)));
+  dict.insert(QStringLiteral("fs_neg_1"), -100);
+  dict.insert(QStringLiteral("fs_neg_2"), -1000 * 1000 * 50);
+
+  // fixes tests on MSVC2013
+  QString fsInput;
+  fsInput = QStringLiteral(
+      "{{ fs_bytes|filesizeformat }} {{ fs_kb|filesizeformat }} {{ "
+      "fs_10kb|filesizeformat }} {{ fs_1000kb|filesizeformat }} ");
+  fsInput += QStringLiteral(
+      "{{ fs_mb|filesizeformat }} {{ fs_50mb|filesizeformat }} {{ "
+      "fs_1000mb|filesizeformat }} {{ fs_gb|filesizeformat }} ");
+  fsInput += QStringLiteral(
+      "{{ fs_tb|filesizeformat }} {{ fs_pb|filesizeformat }} {{ "
+      "fs_eb|filesizeformat }} {{ fs_zb|filesizeformat }} ");
+  fsInput += QStringLiteral(
+      "{{ fs_yb|filesizeformat }} {{ fs_2000yb|filesizeformat }} {{ "
+      "fs_0b1|filesizeformat }} {{ fs_0b2|filesizeformat }} ");
+  fsInput += QStringLiteral(
+      "{{ fs_neg_1|filesizeformat }} {{ fs_neg_2|filesizeformat }}");
+
+  QString fsExpect;
+  fsExpect = QStringLiteral("999 bytes 1.00 KB 10.00 KB 1000.00 KB ");
+  fsExpect += QStringLiteral("1.00 MB 50.00 MB 1000.00 MB 1.00 GB ");
+  fsExpect += QStringLiteral("1.00 TB 1.00 PB 2.00 EB 1.00 ZB ");
+  fsExpect += QStringLiteral("1.00 YB 2000.00 YB 0 bytes 0 bytes ");
+  fsExpect += QStringLiteral("-100 bytes -50.00 MB");
+
+  QTest::newRow("filter-filesizeformat07")
+      << fsInput << dict << fsExpect << NoError;
 }
 
 void TestFilters::testListFilters_data()
@@ -1039,7 +1143,7 @@ void TestFilters::testListFilters_data()
               QVariant::fromValue(markSafe(QStringLiteral("a&b"))));
 
   QTest::newRow("filter-slice01")
-      << "{{ a|slice:\"1:3\" }} {{ b|slice:\"1:3\" }}" << dict
+      << R"({{ a|slice:"1:3" }} {{ b|slice:"1:3" }})" << dict
       << QStringLiteral("&amp;b &b") << NoError;
   QTest::newRow("filter-slice02")
       << "{% autoescape off %}{{ a|slice:\"1:3\" }} {{ b|slice:\"1:3\" }}{% "
@@ -1295,7 +1399,7 @@ void TestFilters::testListFilters_data()
   const auto cities
       = QStringList{QStringLiteral("London"), QStringLiteral("Berlin"),
                     QStringLiteral("Paris"), QStringLiteral("Dublin")};
-  Q_FOREACH (const QString &city, cities) {
+  for (const QString &city : cities) {
     QVariantHash map;
     map.insert(QStringLiteral("city"), city);
     mapList << map;
@@ -1432,7 +1536,7 @@ void TestFilters::testMiscFilters_data()
               QVariant::fromValue(markSafe(QStringLiteral("a < b"))));
 
   QTest::newRow("chaining01")
-      << "{{ a|capfirst|center:\"7\" }}.{{ b|capfirst|center:\"7\" }}" << dict
+      << R"({{ a|capfirst|center:"7" }}.{{ b|capfirst|center:"7" }})" << dict
       << QStringLiteral(" A &lt; b . A < b ") << NoError;
   QTest::newRow("chaining02")
       << "{% autoescape off %}{{ a|capfirst|center:\"7\" }}.{{ "
@@ -1442,7 +1546,7 @@ void TestFilters::testMiscFilters_data()
   //  Using a filter that forces a string back to unsafe:
 
   QTest::newRow("chaining03")
-      << "{{ a|cut:\"b\"|capfirst }}.{{ b|cut:\"b\"|capfirst }}" << dict
+      << R"({{ a|cut:"b"|capfirst }}.{{ b|cut:"b"|capfirst }})" << dict
       << QStringLiteral("A &lt; .A < ") << NoError;
   QTest::newRow("chaining04")
       << "{% autoescape off %}{{ a|cut:\"b\"|capfirst }}.{{ "
@@ -1550,6 +1654,15 @@ void TestFilters::testIntegerFilters_data()
 
   QTest::newRow("add08") << QStringLiteral("{{ 1|add:2 }}") << dict
                          << QStringLiteral("3") << NoError;
+  dict.clear();
+  dict.insert(QStringLiteral("l1"),
+              QStringList{QStringLiteral("one"), QStringLiteral("two")});
+  dict.insert(QStringLiteral("l2"),
+              QStringList{QStringLiteral("three"), QStringLiteral("four")});
+
+  QTest::newRow("add09") << QStringLiteral("{{ l1|add:l2|join:\", \" }}")
+                         << dict << QStringLiteral("one, two, three, four")
+                         << NoError;
 
   QTest::newRow("filter-getdigit01") << QStringLiteral("{{ 123|get_digit:1 }}")
                                      << dict << QStringLiteral("3") << NoError;

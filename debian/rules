@@ -1,11 +1,15 @@
 #!/usr/bin/make -f
 
-DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
-DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+include /usr/share/dpkg/architecture.mk
+
 # Disable fixfilepath, as it triggers build failures.
 export DEB_BUILD_MAINT_OPTIONS = reproducible=-fixfilepath
 
-testsuite_failing_archs := hppa ia64 sparc64
+ifeq ($(DEB_HOST_ARCH_CPU),i386)
+  export DEB_CXXFLAGS_MAINT_APPEND = -ffloat-store
+endif
+
+testsuite_failing_archs := ia64 sparc64
 ifneq (,$(filter $(DEB_HOST_ARCH),$(testsuite_failing_archs)))
   fail_param := || true
 endif
@@ -16,7 +20,8 @@ endif
 override_dh_auto_configure:
 	dh_auto_configure -- -DBUILD_TESTS=ON -DLIB_SUFFIX="/$(DEB_HOST_MULTIARCH)"
 
-ifeq ($(filter nocheck,$(DEB_BUILD_OPTIONS)),)
+execute_after_dh_auto_build-arch:
+	pod2man debian/dh/dh_grantlee > dh_grantlee.1
+
 override_dh_auto_test:
-	xvfb-run dh_auto_test $(fail_param)
-endif
+	xvfb-run -a dh_auto_test $(fail_param)

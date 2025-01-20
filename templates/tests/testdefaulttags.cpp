@@ -32,16 +32,16 @@
 #include "template.h"
 #include "util.h"
 
-typedef QList<QVariantList> Table;
-typedef QHash<QString, QVariant> Dict;
-typedef QPair<QString, QString> StringPair;
+using Table = QList<QVariantList>;
+using Dict = QHash<QString, QVariant>;
+using StringPair = QPair<QString, QString>;
 
 Q_DECLARE_METATYPE(Grantlee::Error)
 
 class FakeTemplateLoader : public Grantlee::InMemoryTemplateLoader
 {
 public:
-  FakeTemplateLoader() : Grantlee::InMemoryTemplateLoader()
+  FakeTemplateLoader()
   {
     m_existingMedia << QStringLiteral("existing_image.png")
                     << QStringLiteral("another_existing_image.png")
@@ -52,7 +52,7 @@ public:
   {
     if (m_existingMedia.contains(fileName))
       return qMakePair(QStringLiteral("/path/to/"), fileName);
-    return QPair<QString, QString>();
+    return {};
   }
 
 private:
@@ -462,10 +462,14 @@ void TestDefaultTags::testIfTag_data()
                                << dict << QStringLiteral("yes") << NoError;
 
   dict.clear();
-  dict.insert(QStringLiteral("foostring"), QStringLiteral("foo"));
-  QTest::newRow("if-tag-eq06") << QStringLiteral(
-      "{% if foostring == \'foo\' %}yes{% else %}no{% endif %}")
-                               << dict << QStringLiteral("yes") << NoError;
+  QTest::newRow("if-tag-eq07")
+      << QStringLiteral("{% if \"foo\" == \"foo\" %}yes{% else %}no{% endif %}")
+      << dict << QStringLiteral("yes") << NoError;
+  dict.clear();
+  dict.insert(QStringLiteral("foo"), QStringLiteral("bar"));
+  QTest::newRow("if-tag-eq08")
+      << QStringLiteral("{% if foo == \"bar\" %}yes{% else %}no{% endif %}")
+      << dict << QStringLiteral("yes") << NoError;
 
   dict.clear();
   dict.insert(QStringLiteral("zoo"), QVariant::fromValue(new Zoo(this)));
@@ -474,6 +478,12 @@ void TestDefaultTags::testIfTag_data()
   QTest::newRow("if-tag-eq07") << QStringLiteral(
       "{% if tigersEnum == zoo.Tigers %}yes{% else %}no{% endif %}")
                                << dict << QStringLiteral("yes") << NoError;
+
+  dict.clear();
+  dict.insert(QStringLiteral("five"), QVariant::fromValue<std::int64_t>(5));
+  QTest::newRow("if-tag-eq08")
+      << QStringLiteral("{% if five == 5 %}yes{% else %}no{% endif %}") << dict
+      << QStringLiteral("yes") << NoError;
 
   // Comparison
 
@@ -1048,7 +1058,8 @@ void TestDefaultTags::testIfTag_data()
       << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}") << dict
       << QStringLiteral("Yes") << NoError;
 
-  auto r = 0.0;
+  // explicitly double
+  double r = 0.0;
   dict.insert(QStringLiteral("var"), r);
   QTest::newRow("if-truthiness09")
       << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}") << dict
@@ -1056,6 +1067,18 @@ void TestDefaultTags::testIfTag_data()
   r = 7.1;
   dict.insert(QStringLiteral("var"), r);
   QTest::newRow("if-truthiness10")
+      << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}") << dict
+      << QStringLiteral("Yes") << NoError;
+
+  // explicitly float
+  float f = 0.0F;
+  dict.insert(QStringLiteral("var"), f);
+  QTest::newRow("if-truthiness11")
+      << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}") << dict
+      << QStringLiteral("No") << NoError;
+  f = 7.1F;
+  dict.insert(QStringLiteral("var"), f);
+  QTest::newRow("if-truthiness12")
       << QStringLiteral("{% if var %}Yes{% else %}No{% endif %}") << dict
       << QStringLiteral("Yes") << NoError;
 
@@ -1506,14 +1529,14 @@ void TestDefaultTags::testIfEqualTag_data()
   dict.insert(QStringLiteral("x"), QStringLiteral("aaa"));
 
   QTest::newRow("ifequal-filter04")
-      << "{% ifequal x|slice:\"1\" \"a\" %}x{% endifequal %}" << dict
+      << R"({% ifequal x|slice:"1" "a" %}x{% endifequal %})" << dict
       << QStringLiteral("x") << NoError;
 
   dict.clear();
   dict.insert(QStringLiteral("x"), QStringLiteral("aaa"));
 
   QTest::newRow("ifequal-filter05")
-      << "{% ifequal x|slice:\"1\"|upper \"A\" %}x{% endifequal %}" << dict
+      << R"({% ifequal x|slice:"1"|upper "A" %}x{% endifequal %})" << dict
       << QStringLiteral("x") << NoError;
 
   QTest::newRow("ifequal-error01")
@@ -1614,6 +1637,15 @@ void TestDefaultTags::testWithTag_data()
                           << dict << QStringLiteral("50") << NoError;
   QTest::newRow("with02") << QStringLiteral(
       "{{ key }}{% with dict.key as key %}{{ key }}-{{ dict.key }}-{{ key }}{% "
+      "endwith %}{{ key }}")
+                          << dict << QStringLiteral("50-50-50") << NoError;
+  QTest::newRow("with03") << QStringLiteral(
+      "{{ key }}{% with key=dict.key %}{{ key }}-{{ dict.key }}-{{ key }}{% "
+      "endwith %}{{ key }}")
+                          << dict << QStringLiteral("50-50-50") << NoError;
+  QTest::newRow("with04") << QStringLiteral(
+      "{{ key1 }}{% with key1=dict.key key2=dict.key key3=dict.key %}{{ key1 "
+      "}}-{{ dict.key }}-{{ key3 }}{% "
       "endwith %}{{ key }}")
                           << dict << QStringLiteral("50-50-50") << NoError;
   QTest::newRow("with-error01")
@@ -2298,7 +2330,7 @@ void TestDefaultTags::testMediaFinderTag_data()
       << "{% media_finder \"does_not_exist.png\" %}" << dict << QString()
       << NoError;
   QTest::newRow("media_finder-tag03")
-      << "{% media_finder \"existing_image.png\" \"does_not_exist.png\" %}"
+      << R"({% media_finder "existing_image.png" "does_not_exist.png" %})"
       << dict << QStringLiteral("file:///path/to/existing_image.png")
       << NoError;
 
@@ -2461,16 +2493,16 @@ void TestDefaultTags::testUrlTypes()
   QFETCH(StringPair, output);
 
   auto t = m_engine->newTemplate(input, QLatin1String(QTest::currentDataTag()));
-  QVERIFY(t->error() == NoError);
+  QCOMPARE(t->error(), NoError);
   Context c(dict);
   auto result = t->render(&c);
-  QVERIFY(t->error() == NoError);
-  QVERIFY(result == output.first + output.second);
+  QCOMPARE(t->error(), NoError);
+  QCOMPARE(result, QString(output.first + output.second));
 
   c.setUrlType(Context::RelativeUrls);
   result = t->render(&c);
-  QVERIFY(t->error() == NoError);
-  QVERIFY(result == output.second);
+  QCOMPARE(t->error(), NoError);
+  QCOMPARE(result, output.second);
 }
 
 void TestDefaultTags::testRelativePaths_data()
@@ -2508,12 +2540,12 @@ void TestDefaultTags::testRelativePaths()
   QFETCH(QString, output);
 
   auto t = m_engine->newTemplate(input, QLatin1String(QTest::currentDataTag()));
-  QVERIFY(t->error() == NoError);
+  QCOMPARE(t->error(), NoError);
   Context c(dict);
   auto result = t->render(&c);
-  QVERIFY(t->error() == NoError);
+  QCOMPARE(t->error(), NoError);
   if (!output.isEmpty())
-    QVERIFY(result == QStringLiteral("file:///path/to/") + output);
+    QCOMPARE(result, QString(QStringLiteral("file:///path/to/") + output));
   else
     QVERIFY(result.isEmpty());
 
@@ -2521,9 +2553,9 @@ void TestDefaultTags::testRelativePaths()
   auto relativePath = QStringLiteral("relative/path");
   c.setRelativeMediaPath(relativePath);
   result = t->render(&c);
-  QVERIFY(t->error() == NoError);
+  QCOMPARE(t->error(), NoError);
   if (!output.isEmpty())
-    QVERIFY(result == relativePath + QLatin1Char('/') + output);
+    QCOMPARE(result, QString(relativePath + QLatin1Char('/') + output));
   else
     QVERIFY(result.isEmpty());
 }

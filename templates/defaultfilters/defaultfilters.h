@@ -67,6 +67,8 @@ public:
     filters.insert(QStringLiteral("first"), new FirstFilter());
     filters.insert(QStringLiteral("fix_ampersands"), new FixAmpersandsFilter());
     filters.insert(QStringLiteral("floatformat"), new FloatFormatFilter());
+    filters.insert(QStringLiteral("filesizeformat"),
+                   new FileSizeFormatFilter());
     filters.insert(QStringLiteral("force_escape"), new ForceEscapeFilter());
     filters.insert(QStringLiteral("get_digit"), new GetDigitFilter());
     filters.insert(QStringLiteral("join"), new JoinFilter());
@@ -98,6 +100,7 @@ public:
     filters.insert(QStringLiteral("wordcount"), new WordCountFilter());
     filters.insert(QStringLiteral("wordwrap"), new WordWrapFilter());
     filters.insert(QStringLiteral("yesno"), new YesNoFilter());
+    filters.insert(QStringLiteral("truncatechars"), new TruncateCharsFilter());
 
     return filters;
   }

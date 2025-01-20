@@ -30,7 +30,7 @@
 static const char *const __loadedBlocks = "__loadedBlocks";
 
 // Terrible hack warning.
-#define BLOCK_CONTEXT_KEY 0
+#define BLOCK_CONTEXT_KEY nullptr
 
 BlockNodeFactory::BlockNodeFactory(QObject *parent)
     : AbstractNodeFactory(parent)
@@ -39,7 +39,13 @@ BlockNodeFactory::BlockNodeFactory(QObject *parent)
 
 Node *BlockNodeFactory::getNode(const QString &tagContent, Parser *p) const
 {
-  const auto expr = tagContent.split(QLatin1Char(' '), QString::SkipEmptyParts);
+  const auto expr = tagContent.split(QLatin1Char(' '),
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                                     QString::SkipEmptyParts
+#else
+                                     Qt::SkipEmptyParts
+#endif
+  );
 
   if (expr.size() != 2) {
     throw Grantlee::Exception(TagSyntaxError,
@@ -87,12 +93,12 @@ Node *BlockNodeFactory::getNode(const QString &tagContent, Parser *p) const
 }
 
 BlockNode::BlockNode(const QString &name, QObject *parent)
-    : Node(parent), m_name(name), m_stream(0)
+    : Node(parent), m_name(name), m_stream(nullptr)
 {
   qRegisterMetaType<Grantlee::SafeString>("Grantlee::SafeString");
 }
 
-BlockNode::~BlockNode() {}
+BlockNode::~BlockNode() = default;
 
 void BlockNode::setNodeList(const NodeList &list) const { m_list = list; }
 
@@ -110,7 +116,7 @@ void BlockNode::render(OutputStream *stream, Context *c) const
               QVariant::fromValue(
                   const_cast<QObject *>(static_cast<const QObject *>(this))));
     m_list.render(stream, c);
-    m_stream = 0;
+    m_stream = nullptr;
   } else {
     auto block = static_cast<const BlockNode *>(blockContext.pop(m_name));
     variant.setValue(blockContext);
@@ -120,7 +126,7 @@ void BlockNode::render(OutputStream *stream, Context *c) const
 
     const auto list = block->m_list;
 
-    block = new BlockNode(block->m_name, 0);
+    block = new BlockNode(block->m_name, nullptr);
     block->setNodeList(list);
     block->m_context = c;
     block->m_stream = stream;
@@ -152,7 +158,7 @@ SafeString BlockNode::getSuper() const
       return markSafe(superContent);
     }
   }
-  return SafeString();
+  return {};
 }
 
 NodeList BlockNode::nodeList() const { return m_list; }

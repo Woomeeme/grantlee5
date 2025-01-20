@@ -31,7 +31,7 @@ ScriptableFilter::ScriptableFilter(const QJSValue &filterObject,
 {
 }
 
-ScriptableFilter::~ScriptableFilter() {}
+ScriptableFilter::~ScriptableFilter() = default;
 
 bool ScriptableFilter::isSafe() const
 {
@@ -84,12 +84,13 @@ QVariant ScriptableFilter::doFilter(const QVariant &input,
 
   if (returnValue.isString()) {
     return getSafeString(returnValue.toString());
-  } else if (returnValue.isQObject()) {
+  }
+  if (returnValue.isQObject()) {
     auto returnedObject = qjsvalue_cast<QObject *>(returnValue);
     auto returnedStringObject
         = qobject_cast<ScriptableSafeString *>(returnedObject);
     if (!returnedStringObject)
-      return QVariant();
+      return {};
     auto returnedString = returnedStringObject->wrappedString();
     return returnedString;
   } else if (returnValue.isVariant()) {
@@ -97,5 +98,5 @@ QVariant ScriptableFilter::doFilter(const QVariant &input,
   } else if (returnValue.isArray()) {
     return qjsvalue_cast<QVariantList>(returnValue);
   }
-  return QVariant();
+  return {};
 }

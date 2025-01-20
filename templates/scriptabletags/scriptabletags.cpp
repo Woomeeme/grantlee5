@@ -55,8 +55,8 @@ QJSValue ScriptableHelperFunctions::markSafeFunction(QJSValue inputValue)
 
     ssObj->setSafety(true);
     return m_scriptEngine->newQObject(ssObj);
-
-  } else if (inputValue.isString()) {
+  }
+  if (inputValue.isString()) {
     auto str = inputValue.toString();
     auto ssObj = new ScriptableSafeString(m_scriptEngine);
     ssObj->setContent(markSafe(str));
@@ -108,7 +108,7 @@ QJSValue ScriptableHelperFunctions::ScriptableTemplateConstructor(
       = m_scriptEngine->property("templateEngine").value<Engine *>();
 
   if (!templateEngine)
-    return QJSValue();
+    return {};
 
   auto t = templateEngine->newTemplate(content, name);
 
@@ -122,7 +122,7 @@ QJSValue ScriptableHelperFunctions::ScriptableVariableConstructor(QString name)
   // It should be the owning scriptableNode. I think I can get that from the
   // scriptContext.
 
-  QObject *parent = 0;
+  QObject *parent = nullptr;
   auto object = new ScriptableVariable(m_scriptEngine, parent);
   object->setContent(name);
 
@@ -190,7 +190,11 @@ bool ScriptableTagLibrary::evaluateScript(const QString &name)
   }
 
   QTextStream fstream(&scriptFile);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   fstream.setCodec("UTF-8");
+#else
+  fstream.setEncoding(QStringConverter::Utf8);
+#endif
   const auto fileContent = fstream.readAll();
 
   scriptFile.close();

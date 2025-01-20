@@ -85,9 +85,8 @@ QTextFrame::iterator MarkupDirector::processBlock(QTextFrame::iterator it,
     auto object = block.document()->objectForFormat(fmt);
     if (object) {
       return processObject(it, block, object);
-    } else {
-      return processBlockContents(it, block);
     }
+    return processBlockContents(it, block);
   }
 
   if (!it.atEnd())
@@ -143,9 +142,8 @@ QTextFrame::iterator MarkupDirector::processTable(QTextFrame::iterator it,
         if (alreadyProcessedCells.contains(tableCell)) {
           // Already processed this cell. Move on.
           continue;
-        } else {
-          alreadyProcessedCells.append(tableCell);
         }
+        alreadyProcessedCells.append(tableCell);
       }
 
       auto cellWidth = colLengths.at(column);
@@ -198,7 +196,8 @@ MarkupDirector::processList(QTextFrame::iterator it, const QTextBlock &_block,
   auto style = list->format().style();
   m_builder->beginList(style);
   auto block = _block;
-  while (block.isValid() && block.textList()) {
+  auto curList = list;
+  while (block.isValid() && block.textList() && curList == list) {
     m_builder->beginListItem();
     processBlockContents(it, block);
     m_builder->endListItem();
@@ -206,7 +205,9 @@ MarkupDirector::processList(QTextFrame::iterator it, const QTextBlock &_block,
     if (!it.atEnd())
       ++it;
     block = block.next();
-    if (block.isValid()) {
+    // Processing nested list
+    if (block.isValid() && block.textList()
+        && block.textList()->format().indent() > list->format().indent()) {
       auto obj = block.document()->objectForFormat(block.blockFormat());
       auto group = qobject_cast<QTextBlockGroup *>(obj);
       if (group && group != list) {
@@ -215,6 +216,8 @@ MarkupDirector::processList(QTextFrame::iterator it, const QTextBlock &_block,
         block = pair.second;
       }
     }
+    curList = qobject_cast<QTextList *>(
+        block.document()->objectForFormat(block.blockFormat()));
   }
   m_builder->endList();
   return qMakePair(it, block);
@@ -571,7 +574,7 @@ void MarkupDirector::processOpeningElements(QTextBlock::iterator it)
   auto fragmentFormat = fragment.charFormat();
   auto elementsToOpenList = getElementsToOpen(it);
 
-  Q_FOREACH (int tag, elementsToOpenList) {
+  for (int tag : qAsConst(elementsToOpenList)) {
     switch (tag) {
     case Strong:
       m_builder->beginStrong();
@@ -612,12 +615,10 @@ void MarkupDirector::processOpeningElements(QTextBlock::iterator it)
             // Doesn't matter if anchorHref is empty.
             m_builder->beginAnchor(fragmentFormat.anchorHref(), n);
             break;
-          } else {
-            // Empty <a> tags allow multiple names for the same
-            // section.
-            m_builder->beginAnchor(QString(), n);
-            m_builder->endAnchor();
-          }
+          } // Empty <a> tags allow multiple names for the same
+          // section.
+          m_builder->beginAnchor(QString(), n);
+          m_builder->endAnchor();
         }
       } else {
         m_builder->beginAnchor(fragmentFormat.anchorHref());
@@ -646,7 +647,12 @@ QSet<int> MarkupDirector::getElementsToClose(QTextBlock::iterator it) const
 
   if (it.atEnd()) {
     // End of block?. Close all open tags.
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     auto elementsToClose = d->m_openElements.toSet();
+#else
+    auto elementsToClose
+        = QSet<int>(d->m_openElements.begin(), d->m_openElements.end());
+#endif
     return elementsToClose.unite(d->m_elementsToOpen);
   }
 
@@ -665,7 +671,18 @@ QSet<int> MarkupDirector::getElementsToClose(QTextBlock::iterator it) const
   auto fontForeground = fragmentFormat.foreground();
   auto fontBackground = fragmentFormat.background();
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   auto fontFamily = fragmentFormat.fontFamily();
+#else
+  QString fontFamily;
+  auto fontFamilies = fragmentFormat.fontFamilies();
+  if (fontFamilies.isValid()) {
+    auto fflist = fontFamilies.value<QList<QString>>();
+    if (!fflist.isEmpty()) {
+      fontFamily = fflist[0];
+    }
+  }
+#endif
   auto fontPointSize = fragmentFormat.font().pointSize();
   auto anchorHref = fragmentFormat.anchorHref();
 
@@ -751,7 +768,7 @@ QList<int> MarkupDirector::getElementsToOpen(QTextBlock::iterator it)
   Q_D(MarkupDirector);
   auto fragment = it.fragment();
   if (!fragment.isValid()) {
-    return QList<int>();
+    return {};
   }
   auto fragmentFormat = fragment.charFormat();
 
@@ -763,7 +780,18 @@ QList<int> MarkupDirector::getElementsToOpen(QTextBlock::iterator it)
   auto fontForeground = fragmentFormat.foreground();
   auto fontBackground = fragmentFormat.background();
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   auto fontFamily = fragmentFormat.fontFamily();
+#else
+  QString fontFamily;
+  auto fontFamilies = fragmentFormat.fontFamilies();
+  if (fontFamilies.isValid()) {
+    auto fflist = fontFamilies.value<QList<QString>>();
+    if (!fflist.isEmpty()) {
+      fontFamily = fflist[0];
+    }
+  }
+#endif
   auto fontPointSize = fragmentFormat.font().pointSize();
   auto anchorHref = fragmentFormat.anchorHref();
 
@@ -843,7 +871,11 @@ QList<int> MarkupDirector::getElementsToOpen(QTextBlock::iterator it)
   }
 
   if (d->m_elementsToOpen.size() <= 1) {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     return d->m_elementsToOpen.toList();
+#else
+    return QList<int>(d->m_elementsToOpen.begin(), d->m_elementsToOpen.end());
+#endif
   }
   return sortOpeningOrder(d->m_elementsToOpen, it);
 }
@@ -871,7 +903,7 @@ QList<int> MarkupDirector::sortOpeningOrder(QSet<int> openingOrder,
         // will be
         // closed on the same block.
         // See testDoubleFormat.
-        Q_FOREACH (int tag, elementsToClose) {
+        for (int tag : qAsConst(elementsToClose)) {
           if (openingOrder.remove(tag)) {
             sortedOpenedElements.prepend(tag);
           }
@@ -880,7 +912,7 @@ QList<int> MarkupDirector::sortOpeningOrder(QSet<int> openingOrder,
     } else {
       // End of block. Need to close all open elements.
       // Order irrelevant in this case.
-      Q_FOREACH (int tag, openingOrder) {
+      for (int tag : openingOrder) {
         sortedOpenedElements.prepend(tag);
       }
       break;

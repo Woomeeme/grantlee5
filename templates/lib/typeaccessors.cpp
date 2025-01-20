@@ -50,15 +50,15 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
                                              const QString &property)
 {
   if (property == QStringLiteral("capitalize")) {
-    const QString s = object.get();
-    return QVariant(s.at(0).toUpper() + s.right(s.length() - 1));
+    const QString &s = object.get();
+    return {s.at(0).toUpper() + s.right(s.length() - 1)};
   }
 
   static const QLatin1String falseString("False");
   static const QLatin1String trueString("True");
 
   if (property == QStringLiteral("isalnum")) {
-    const QString s = object.get();
+    const QString &s = object.get();
     auto it = s.constBegin();
     while (it != s.constEnd()) {
       if (!it->isLetterOrNumber())
@@ -68,7 +68,7 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
     return trueString;
   }
   if (property == QStringLiteral("isalpha")) {
-    const QString s = object.get();
+    const QString &s = object.get();
     auto it = s.constBegin();
     if (it == s.constEnd())
       return falseString;
@@ -80,7 +80,7 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
     return trueString;
   }
   if (property == QStringLiteral("isdigit")) {
-    const QString s = object.get();
+    const QString &s = object.get();
     auto it = s.constBegin();
     while (it != s.constEnd()) {
       if (!it->isNumber())
@@ -98,7 +98,7 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
     return (s.isEmpty()) ? trueString : falseString;
   }
   if (property == QStringLiteral("istitle")) {
-    const QString s = object.get();
+    const QString &s = object.get();
 
     static const auto titleRe = getIsTitleRE();
     return (titleRe.match(s).hasMatch()) ? falseString : trueString;
@@ -123,7 +123,7 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
     return object.get().trimmed();
   }
   if (property == QStringLiteral("swapcase")) {
-    const QString inputString = object.get();
+    const QString &inputString = object.get();
     QString s;
     s.reserve(inputString.size());
     auto it = inputString.constBegin();
@@ -141,7 +141,7 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
   if (property == QStringLiteral("title")) {
     static const auto titleRe = getTitleRE();
 
-    const QString s = object.get();
+    const QString &s = object.get();
     QString output;
     output.reserve(s.size());
     auto pos = 0;
@@ -157,9 +157,9 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
       if (it.hasNext()) {
         match = it.peekNext();
         nextPos = match.capturedStart();
-        output += s.midRef(pos + matchedLength, nextPos - pos - 1);
+        output += s.mid(pos + matchedLength, nextPos - pos - 1);
       } else {
-        output += s.rightRef(s.length() - (pos + matchedLength));
+        output += s.right(s.length() - (pos + matchedLength));
       }
     }
 
@@ -168,7 +168,7 @@ TypeAccessor<Grantlee::SafeString &>::lookUp(const Grantlee::SafeString &object,
   if (property == QStringLiteral("upper")) {
     return object.get().toUpper();
   }
-  return QVariant();
+  return {};
 }
 
 template <>
@@ -191,13 +191,13 @@ TypeAccessor<MetaEnumVariable &>::lookUp(const MetaEnumVariable &object,
   const auto listIndex = property.toInt(&ok);
   if (ok) {
     if (listIndex >= object.enumerator.keyCount())
-      return QVariant();
+      return {};
 
     const MetaEnumVariable mev(object.enumerator,
                                object.enumerator.value(listIndex));
     return QVariant::fromValue(mev);
   }
 
-  return QVariant();
+  return {};
 }
 }

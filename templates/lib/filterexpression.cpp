@@ -28,7 +28,7 @@
 #include "parser.h"
 #include "util.h"
 
-typedef QPair<QSharedPointer<Grantlee::Filter>, Grantlee::Variable> ArgFilter;
+using ArgFilter = QPair<QSharedPointer<Grantlee::Filter>, Grantlee::Variable>;
 
 namespace Grantlee
 {
@@ -60,12 +60,10 @@ static QRegularExpression getFilterRegexp()
 
   const QLatin1String varChars(
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.");
-  const QLatin1String numChars("[-+\\.]?\\d[\\d\\.e]*");
+  const QLatin1String numChars(R"([-+\.]?\d[\d\.e]*)");
   const QString i18nOpen(QRegularExpression::escape(QStringLiteral("_(")));
-  const QLatin1String doubleQuoteStringLiteral(
-      "\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\"");
-  const QLatin1String singleQuoteStringLiteral(
-      "\'[^\'\\\\]*(?:\\\\.[^\'\\\\]*)*\'");
+  const QLatin1String doubleQuoteStringLiteral(R"("[^"\\]*(?:\\.[^"\\]*)*")");
+  const QLatin1String singleQuoteStringLiteral(R"('[^'\\]*(?:\\.[^'\\]*)*')");
   const QString i18nClose(QRegularExpression::escape(QStringLiteral(")")));
   const QString variable = QLatin1Char('[') + varChars + QStringLiteral("]+");
 
@@ -101,14 +99,12 @@ FilterExpression::FilterExpression(const QString &varString, Parser *parser)
   int len;
   QString subString;
 
-  auto vs = varString;
-
   static const auto sFilterRe = getFilterRegexp();
 
   // This is one fo the few constructors that can throw so we make sure to
   // delete its d->pointer.
   try {
-    auto i = sFilterRe.globalMatch(vs);
+    auto i = sFilterRe.globalMatch(varString);
     while (i.hasNext()) {
       auto match = i.next();
       len = match.capturedLength();
@@ -120,7 +116,7 @@ FilterExpression::FilterExpression(const QString &varString, Parser *parser)
         throw Grantlee::Exception(
             TagSyntaxError,
             QStringLiteral("Could not parse some characters: \"%1\"")
-                .arg(vs.mid(lastPos, pos)));
+                .arg(varString.mid(lastPos, pos)));
       }
 
       if (subString.startsWith(QLatin1Char(FILTER_SEPARATOR))) {
@@ -130,13 +126,12 @@ FilterExpression::FilterExpression(const QString &varString, Parser *parser)
         Q_ASSERT(f);
 
         d->m_filterNames << subString;
-        d->m_filters << qMakePair<QSharedPointer<Filter>, Variable>(f,
-                                                                    Variable());
+        d->m_filters << qMakePair(f, Variable());
 
       } else if (subString.startsWith(QLatin1Char(FILTER_ARGUMENT_SEPARATOR))) {
         if (d->m_filters.isEmpty()
             || d->m_filters.at(d->m_filters.size() - 1).second.isValid()) {
-          const auto remainder = vs.right(vs.size() - lastPos);
+          const auto remainder = varString.right(varString.size() - lastPos);
           throw Grantlee::Exception(
               TagSyntaxError,
               QStringLiteral("Could not parse the remainder, %1 from %2")
@@ -160,7 +155,7 @@ FilterExpression::FilterExpression(const QString &varString, Parser *parser)
       lastPos = pos;
     }
 
-    const auto remainder = vs.right(vs.size() - lastPos);
+    const auto remainder = varString.right(varString.size() - lastPos);
     if (!remainder.isEmpty()) {
       throw Grantlee::Exception(
           TagSyntaxError,
@@ -264,7 +259,7 @@ QVariantList FilterExpression::toList(Context *c) const
 {
   const auto var = resolve(c);
   if (!var.canConvert<QVariantList>())
-    return QVariantList();
+    return {};
   return var.value<QVariantList>();
 }
 

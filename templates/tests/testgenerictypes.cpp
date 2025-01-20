@@ -25,7 +25,9 @@
 #include "template.h"
 #include "test_macros.h"
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtCore/QLinkedList>
+#endif
 #include <QtCore/QMetaType>
 #include <QtCore/QQueue>
 #include <QtCore/QStack>
@@ -109,7 +111,7 @@ Q_DECLARE_METATYPE(PersonGadget)
 GRANTLEE_BEGIN_LOOKUP(Person)
 if (property == QStringLiteral("name"))
   return QString::fromStdString(object.name);
-else if (property == QStringLiteral("age"))
+if (property == QStringLiteral("age"))
   return object.age;
 GRANTLEE_END_LOOKUP
 
@@ -266,7 +268,7 @@ template <typename T> struct SequentialContainerTester<QSet<T>> {
     auto result = t1->render(&c);
     QStringList output{QStringLiteral("Claire,"), QStringLiteral("Grant,"),
                        QStringLiteral("Alan,")};
-    Q_FOREACH (const QString &s, output) {
+    for (const QString &s : output) {
       QVERIFY(result.contains(s));
     }
 
@@ -276,6 +278,7 @@ template <typename T> struct SequentialContainerTester<QSet<T>> {
   static void indexing(Grantlee::Context) {}
 };
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 template <typename T> struct SequentialContainerTester<QLinkedList<T>> {
   static void iteration(Grantlee::Context &c)
   {
@@ -284,6 +287,7 @@ template <typename T> struct SequentialContainerTester<QLinkedList<T>> {
 
   static void indexing(Grantlee::Context) {}
 };
+#endif
 
 template <typename T> struct SequentialContainerTester<std::list<T>> {
   static void iteration(Grantlee::Context &c)
@@ -321,7 +325,7 @@ void testAssociativeValues(Grantlee::Context &c, bool unordered = {})
     if (!unordered)
       QCOMPARE(result, QStringLiteral("(Claire:23),(Grant:32),(Alan:50),"));
     else {
-      QVERIFY(result.size() == 33);
+      QCOMPARE(result.size(), 33);
       QVERIFY(result.contains(QStringLiteral("(Claire:23),")));
       QVERIFY(result.contains(QStringLiteral("(Grant:32),")));
       QVERIFY(result.contains(QStringLiteral("(Alan:50),")));
@@ -345,7 +349,7 @@ void testAssociativeItems(Grantlee::Context &c, bool unordered)
     if (!unordered)
       QCOMPARE(result, QStringLiteral("(Claire:23),(Grant:32),(Alan:50),"));
     else {
-      QVERIFY(result.size() == 33);
+      QCOMPARE(result.size(), 33);
       QVERIFY(result.contains(QStringLiteral("(Claire:23),")));
       QVERIFY(result.contains(QStringLiteral("(Grant:32),")));
       QVERIFY(result.contains(QStringLiteral("(Alan:50),")));
@@ -373,7 +377,9 @@ void TestGenericTypes::testSequentialContainer_Variant()
   doTestSequentialContainer_Variant<QVector<QVariant>>();
   doTestSequentialContainer_Variant<QStack<QVariant>>();
   doTestSequentialContainer_Variant<QQueue<QVariant>>();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   doTestSequentialContainer_Variant<QLinkedList<QVariant>>();
+#endif
 }
 
 void TestGenericTypes::testAssociativeContainer_Variant()
@@ -492,7 +498,9 @@ void TestGenericTypes::testSequentialContainer_Type()
   doTestSequentialContainer_Type<QVector<Person>>();
   doTestSequentialContainer_Type<QStack<Person>>();
   doTestSequentialContainer_Type<QQueue<Person>>();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   doTestSequentialContainer_Type<QLinkedList<Person>>();
+#endif
   doTestSequentialContainer_Type<QSet<Person>>();
   doTestSequentialContainer_Type<std::deque<Person>>();
   doTestSequentialContainer_Type<std::vector<Person>>();
@@ -570,9 +578,9 @@ void TestGenericTypes::testThirdPartySharedPointer()
   QCOMPARE(t1->render(&c), QStringLiteral("Grant Lee 2"));
 }
 
-typedef QList<QVector<qint16>> ListVectorInt;
-typedef QMap<int, QList<QVector<qint16>>> MapListVectorInt;
-typedef QStack<QMap<int, QList<QVector<qint16>>>> StackMapListVectorInt;
+using ListVectorInt = QList<QVector<qint16>>;
+using MapListVectorInt = QMap<int, QList<QVector<qint16>>>;
+using StackMapListVectorInt = QStack<QMap<int, QList<QVector<qint16>>>>;
 
 static QVector<qint16> getNumbers()
 {
@@ -772,7 +780,7 @@ Q_DECLARE_METATYPE(Person *)
 GRANTLEE_BEGIN_LOOKUP_PTR(Person)
 if (property == QStringLiteral("name"))
   return QString::fromStdString(object->name);
-else if (property == QStringLiteral("age"))
+if (property == QStringLiteral("age"))
   return object->age;
 GRANTLEE_END_LOOKUP
 
@@ -841,8 +849,8 @@ public:
     m_numberList.push_back(7);
     m_gadgetList.push_back(CustomGadget{});
     m_gadgetList.push_back(CustomGadget{});
-    m_personList.push_back(new PersonObject{QStringLiteral("Joe"), 20});
-    m_personList.push_back(new PersonObject{QStringLiteral("Mike"), 22});
+    m_personList.push_back(new PersonObject{QStringLiteral("Joe"), 20, this});
+    m_personList.push_back(new PersonObject{QStringLiteral("Mike"), 22, this});
     m_personPtrList.push_back(
         QSharedPointer<PersonObject>::create(QStringLiteral("Niall"), 23));
     m_personPtrList.push_back(

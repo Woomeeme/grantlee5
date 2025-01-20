@@ -55,7 +55,7 @@ void KDELocalizer::insertApplicationCatalogs(const QStringList &catalogs)
 {
   Q_D(KDELocalizer);
   d->m_applicationCatalogs = catalogs;
-  Q_FOREACH (const QString &catalog, d->m_applicationCatalogs) {
+  for (const QString &catalog : d->m_applicationCatalogs) {
     d->m_locale->insertCatalog(catalog);
   }
 }
@@ -76,10 +76,10 @@ void KDELocalizer::pushLocale(const QString &localeName)
     country = parts.at(1).toLower();
   d->m_locale = new KLocale(KGlobal::mainComponent().catalogName(), localeName,
                             country);
-  Q_FOREACH (const QString &catalog, d->m_applicationCatalogs) {
+  for (const QString &catalog : d->m_applicationCatalogs) {
     d->m_locale->insertCatalog(catalog);
   }
-  Q_FOREACH (const QString &catalog, d->m_catalogs) {
+  for (const QString &catalog : d->m_catalogs) {
     d->m_locale->insertCatalog(catalog);
   }
 }
@@ -168,10 +168,10 @@ static KLocalizedString substituteArguments(const KLocalizedString &_string,
                                             const QVariantList &args)
 {
   KLocalizedString string = _string;
-  Q_FOREACH (const QVariant &arg, args) {
-    if (arg.type() == QVariant::Int)
+  for (const QVariant &arg : args) {
+    if (arg.type() == QMetaType::Int)
       string = string.subs(arg.toInt());
-    else if (arg.type() == QVariant::Double)
+    else if (arg.type() == QMetaType::Double)
       string = string.subs(arg.toDouble());
     else
       string = string.subs(arg.toString());

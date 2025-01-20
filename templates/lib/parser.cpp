@@ -99,7 +99,7 @@ Parser::Parser(const QList<Token> &tokenList, QObject *parent)
 
   auto engine = const_cast<Engine *>(cengine);
   engine->loadDefaultLibraries();
-  Q_FOREACH (const QString &libraryName, engine->defaultLibraries()) {
+  for (const QString &libraryName : engine->defaultLibraries()) {
     auto library = engine->loadLibrary(libraryName);
     if (!library)
       continue;
@@ -156,10 +156,12 @@ void Parser::skipPast(const QString &tag)
 QSharedPointer<Filter> Parser::getFilter(const QString &name) const
 {
   Q_D(const Parser);
-  if (!d->m_filters.contains(name))
-    throw Grantlee::Exception(UnknownFilterError,
-                              QStringLiteral("Unknown filter: %1").arg(name));
-  return d->m_filters.value(name);
+  const auto it = d->m_filters.constFind(name);
+  if (it != d->m_filters.constEnd()) {
+    return it.value();
+  }
+  throw Grantlee::Exception(UnknownFilterError,
+                            QStringLiteral("Unknown filter: %1").arg(name));
 }
 
 NodeList Parser::parse(Node *parent, const QString &stopAt)
@@ -306,14 +308,13 @@ void Parser::invalidBlockTag(const Token &token, const QString &command,
         QStringLiteral("Invalid block tag on line %1: '%2', expected '%3'")
             .arg(token.linenumber)
             .arg(command, stopAt.join(QStringLiteral("', '"))));
-  } else {
-    throw Grantlee::Exception(
-        InvalidBlockTagError,
-        QStringLiteral("Invalid block tag on line %1: '%2\''. Did you forget "
-                       "to register or load this tag?")
-            .arg(token.linenumber)
-            .arg(command));
   }
+  throw Grantlee::Exception(
+      InvalidBlockTagError,
+      QStringLiteral("Invalid block tag on line %1: '%2\''. Did you forget "
+                     "to register or load this tag?")
+          .arg(token.linenumber)
+          .arg(command));
 }
 
 void Parser::prependToken(const Token &token)

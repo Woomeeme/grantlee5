@@ -68,7 +68,7 @@ class QtLocalizerPrivate
     Q_ASSERT(!m_locales.isEmpty());
     if (m_locales.isEmpty()) {
       qCWarning(GRANTLEE_LOCALIZER) << "Invalid Locale";
-      return QLocale();
+      return {};
     }
     return m_locales.last()->locale;
   }
@@ -126,7 +126,7 @@ QString QtLocalizerPrivate::translate(const QString &input,
   }
 
   auto locale = m_locales.last();
-  Q_FOREACH (QTranslator *translator, locale->themeTranslators) {
+  for (QTranslator *translator : qAsConst(locale->themeTranslators)) {
     result = translator->translate("GR_FILENAME", input.toUtf8().constData(),
                                    context.toUtf8().constData(), count);
   }
@@ -137,7 +137,7 @@ QString QtLocalizerPrivate::translate(const QString &input,
       return QCoreApplication::translate("GR_FILENAME",
                                          input.toUtf8().constData(),
                                          context.toUtf8().constData(), count);
-    Q_FOREACH (QTranslator *translator, translators) {
+    for (QTranslator *translator : qAsConst(translators)) {
       result = translator->translate("GR_FILENAME", input.toUtf8().constData(),
                                      context.toUtf8().constData(), count);
       if (!result.isEmpty())
@@ -154,7 +154,7 @@ QString QtLocalizerPrivate::translate(const QString &input,
 }
 
 QtLocalizer::QtLocalizer(const QLocale &locale)
-    : AbstractLocalizer(), d_ptr(new QtLocalizerPrivate(this, locale))
+    : d_ptr(new QtLocalizerPrivate(this, locale))
 {
 }
 
@@ -237,7 +237,7 @@ static QString substituteArguments(const QString &input,
                                    const QVariantList &arguments)
 {
   auto string = input;
-  Q_FOREACH (const QVariant &arg, arguments) {
+  for (const QVariant &arg : arguments) {
     if (arg.userType() == qMetaTypeId<int>())
       string = string.arg(arg.value<int>());
     else if (arg.userType() == qMetaTypeId<double>())
@@ -300,16 +300,17 @@ QString QtLocalizer::currentLocale() const
 void QtLocalizer::pushLocale(const QString &localeName)
 {
   Q_D(QtLocalizer);
-  Locale *localeStruct = 0;
+  Locale *localeStruct = nullptr;
   if (!d->m_availableLocales.contains(localeName)) {
     localeStruct = new Locale(QLocale(localeName));
     auto qtTranslator = new QTranslator;
-    qtTranslator->load(QStringLiteral("qt_") + localeName,
-                       QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+    (void)qtTranslator->load(
+        QStringLiteral("qt_") + localeName,
+        QLibraryInfo::location(QLibraryInfo::TranslationsPath));
     localeStruct->systemTranslators.append(qtTranslator);
     auto appTranslator = new QTranslator;
-    appTranslator->load(d->m_appTranslatorPrefix + localeName,
-                        d->m_appTranslatorPath);
+    (void)appTranslator->load(d->m_appTranslatorPrefix + localeName,
+                              d->m_appTranslatorPath);
     localeStruct->systemTranslators.append(appTranslator);
     d->m_availableLocales.insert(localeName, localeStruct);
   } else {

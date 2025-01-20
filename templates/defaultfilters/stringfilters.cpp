@@ -56,7 +56,7 @@ QVariant CapFirstFilter::doFilter(const QVariant &input,
                       safeString.get().right(safeString.get().size() - 1)));
 }
 
-EscapeJsFilter::EscapeJsFilter() {}
+EscapeJsFilter::EscapeJsFilter() = default;
 
 static QList<QPair<QString, QString>> getJsEscapes()
 {
@@ -137,8 +137,7 @@ QVariant CutFilter::doFilter(const QVariant &input, const QVariant &argument,
 
   if (inputSafe && argString.get() != QChar::fromLatin1(';'))
     return markSafe(retString);
-  else
-    return retString;
+  return retString;
 }
 
 QVariant SafeFilter::doFilter(const QVariant &input, const QVariant &argument,
@@ -231,7 +230,13 @@ QVariant TruncateWordsFilter::doFilter(const QVariant &input,
   }
 
   QString inputString = getSafeString(input);
-  auto words = inputString.split(QLatin1Char(' '), QString::SkipEmptyParts);
+  auto words = inputString.split(QLatin1Char(' '),
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                                 QString::SkipEmptyParts
+#else
+                                 Qt::SkipEmptyParts
+#endif
+  );
 
   if (words.size() > numWords) {
     words = words.mid(0, numWords);
@@ -348,12 +353,18 @@ QVariant WordWrapFilter::doFilter(const QVariant &input,
   Q_UNUSED(autoescape)
   QString _input = getSafeString(input);
   auto width = argument.value<int>();
-  auto partList = _input.split(QLatin1Char(' '), QString::SkipEmptyParts);
+  auto partList = _input.split(QLatin1Char(' '),
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                               QString::SkipEmptyParts
+#else
+                               Qt::SkipEmptyParts
+#endif
+  );
   if (partList.isEmpty())
-    return QVariant();
+    return {};
   auto output = partList.takeFirst();
   auto pos = output.size() - output.lastIndexOf(QLatin1Char('\n')) - 1;
-  Q_FOREACH (const QString &part, partList) {
+  for (const QString &part : qAsConst(partList)) {
     QStringList lines;
     if (part.contains(QLatin1Char('\n'))) {
       lines = part.split(QLatin1Char('\n'));
@@ -379,14 +390,26 @@ QVariant FloatFormatFilter::doFilter(const QVariant &input,
                                      bool autoescape) const
 {
   Q_UNUSED(autoescape)
-  auto _input = getSafeString(input).get().toDouble();
+  double inputDouble;
+  switch (static_cast<int>(input.type())) {
+  case QMetaType::Int:
+  case QMetaType::UInt:
+  case QMetaType::LongLong:
+  case QMetaType::ULongLong:
+  case QMetaType::Double:
+    inputDouble = input.toDouble();
+    break;
+  default:
+    inputDouble = getSafeString(input).get().toDouble();
+  }
+
   int precision;
   if (argument.isValid())
     precision = getSafeString(argument).get().toInt();
   else
     precision = 1;
 
-  return QString::number(_input, 'f', precision);
+  return QString::number(inputDouble, 'f', precision);
 }
 
 QVariant SafeSequenceFilter::doFilter(const QVariant &input,
@@ -397,7 +420,7 @@ QVariant SafeSequenceFilter::doFilter(const QVariant &input,
   Q_UNUSED(autoescape)
   QVariantList list;
   if (input.userType() == qMetaTypeId<QVariantList>())
-    Q_FOREACH (const QVariant &item, input.value<QVariantList>())
+    for (const QVariant &item : input.value<QVariantList>())
       list << markSafe(getSafeString(item));
   return list;
 }
@@ -411,7 +434,7 @@ QVariant LineBreaksFilter::doFilter(const QVariant &input,
   static const QRegularExpression re(QStringLiteral("\n{2,}"));
   QStringList output;
 
-  Q_FOREACH (const QString &bit, inputString.get().split(re)) {
+  for (const QString &bit : inputString.get().split(re)) {
     auto _bit = SafeString(bit, inputString.isSafe());
     if (autoescape)
       _bit = conditionalEscape(_bit);
@@ -464,4 +487,114 @@ QVariant SlugifyFilter::doFilter(const QVariant &input,
             .toLower();
   return markSafe(inputString.replace(
       QRegularExpression(QStringLiteral("[-\\s]+")), QChar::fromLatin1('-')));
+}
+
+QVariant FileSizeFormatFilter::doFilter(const QVariant &input,
+                                        const QVariant &argument,
+                                        bool autoescape) const
+{
+  QVariant ret;
+
+  Q_UNUSED(autoescape)
+  const auto arg = getSafeString(argument);
+  bool numberConvert = true;
+
+  qreal size = 0.0F;
+  if (input.canConvert<qreal>()) {
+    size = input.toReal(&numberConvert);
+    if (!numberConvert) {
+      qWarning("%s",
+               "Failed to convert input file size into floating point value.");
+    }
+  } else {
+    size = getSafeString(input).get().toDouble(&numberConvert);
+    if (!numberConvert) {
+      qWarning("%s",
+               "Failed to convert input file size into floating point value.");
+    }
+  }
+
+  int unitSystem = 10;
+  int precision = 2;
+  qreal multiplier = 1.0F;
+
+  if (!arg.get().isEmpty()) {
+    const auto argList = arg.get().split(QLatin1Char(','),
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                                         QString::SkipEmptyParts
+#else
+                                         Qt::SkipEmptyParts
+#endif
+    );
+    const auto numArgs = argList.size();
+    if (numArgs > 0) {
+      unitSystem = argList.at(0).toInt(&numberConvert);
+      if (!numberConvert) {
+        qWarning("%s", "Failed to convert filse size format unit system into "
+                       "integer. Falling back to default 10.");
+        unitSystem = 10;
+      }
+    }
+
+    if (numArgs > 1) {
+      precision = argList.at(1).toInt(&numberConvert);
+      if (!numberConvert) {
+        qWarning("%s", "Failed to convert file size format decimal precision "
+                       "into integer. Falling back to default 2.");
+        precision = 2;
+      }
+    }
+
+    if (numArgs > 2) {
+      multiplier = argList.at(2).toDouble(&numberConvert);
+      if (!numberConvert) {
+        qWarning("%s", "Failed to convert file size format multiplier into "
+                       "double value. Falling back to default 1.0");
+        multiplier = 1.0F;
+      } else {
+        if (multiplier == 0.0F) {
+          qWarning("%s", "It makes no sense to multiply the file size by zero. "
+                         "Using default value 1.0.");
+          multiplier = 1.0F;
+        }
+      }
+    }
+  }
+
+  const double sizeMult = size * multiplier;
+
+  if (unitSystem == 10) {
+    if ((sizeMult > -1000) && (sizeMult < 1000)) {
+      precision = 0;
+    }
+  } else if (unitSystem == 2) {
+    if ((sizeMult > -1024) && (sizeMult < 1024)) {
+      precision = 0;
+    }
+  }
+
+  const std::pair<qreal, QString> sizePair
+      = calcFileSize(size, unitSystem, multiplier);
+
+  const QString retString = QString::number(sizePair.first, 'f', precision)
+                            + QLatin1Char(' ') + sizePair.second;
+
+  ret.setValue(retString);
+
+  return ret;
+}
+
+QVariant TruncateCharsFilter::doFilter(const QVariant &input,
+                                       const QVariant &argument,
+                                       bool autoescape) const
+{
+  Q_UNUSED(autoescape)
+  QString retString = getSafeString(input);
+  int count = getSafeString(argument).get().toInt();
+
+  if (retString.length() < count)
+    return retString;
+  retString.truncate(count);
+  retString.append(QStringLiteral("..."));
+  return retString;
 }

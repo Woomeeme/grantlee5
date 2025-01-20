@@ -14,15 +14,19 @@ add_executable(contacts_linguist
   mainwindow.cpp
   contact.cpp
 )
-
-find_package(Qt5WebKitWidgets REQUIRED)
-find_package(Qt5LinguistTools REQUIRED)
-
 target_link_libraries(
   contacts_linguist
   Grantlee5::Templates
+)
+
+find_package(Qt5WebKitWidgets REQUIRED)
+find_package(Qt5LinguistTools REQUIRED)
+target_link_libraries(
+  contacts_linguist
   Qt5::WebKitWidgets
 )
+set(lupdate_exe Qt5::lupdate)
+set(lrelease_exe Qt5::lrelease)
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_SOURCE_DIR}/../../scripts" "${PROJECT_SOURCE_DIR}/scripts")
 
@@ -31,7 +35,7 @@ set( LINGUIST_TS_ARGS COMMAND "${CMAKE_SOURCE_DIR}/scripts/extract_strings_lingu
   "${CMAKE_SOURCE_DIR}/themes/linguist/sneezy/*.html"
   "${CMAKE_SOURCE_DIR}/themes/linguist/sleepy/*.html"
   ">" "${CMAKE_BINARY_DIR}/output.cpp"
-  COMMAND Qt5::lupdate "${CMAKE_BINARY_DIR}/output.cpp" "-ts" )
+  COMMAND ${lupdate_exe} "${CMAKE_BINARY_DIR}/output.cpp" "-ts" )
 
 set (CONTACTS_LOCALES "fr_FR" "de_DE" )
 
@@ -45,7 +49,7 @@ add_custom_target(linguist_ts
 )
 
 foreach(CONTACT_LOCALE ${CONTACTS_LOCALES})
-    list(APPEND _LINGUIST_QM_ARGS COMMAND Qt5::lrelease "${CMAKE_SOURCE_DIR}/${CONTACT_LOCALE}.ts" "-qm" "${CMAKE_BINARY_DIR}/contacts_${CONTACT_LOCALE}.qm" )
+    list(APPEND _LINGUIST_QM_ARGS COMMAND ${lrelease_exe} "${CMAKE_SOURCE_DIR}/${CONTACT_LOCALE}.ts" "-qm" "${CMAKE_BINARY_DIR}/contacts_${CONTACT_LOCALE}.qm" )
 endforeach()
 
 add_custom_target(linguist_qm

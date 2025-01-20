@@ -1,3 +1,0 @@
-Tests: build-examples
-Depends: build-essential, cmake, libgrantlee5-dev, libqt5webkit5-dev, qttools5-dev, libqt5xmlpatterns5-dev
-Restrictions: allow-stderr
